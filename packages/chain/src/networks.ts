@@ -1,5 +1,5 @@
-// MST network definitions. Values come from the ethereum-lists/chains registry and must be
-// cross-checked against https://docs.mstblockchain.com/developer-docs (see docs/adr/0002).
+// MST network definitions. Values come from the ethereum-lists/chains registry and were
+// verified against the live RPCs on 2026-09-28 (see docs/adr/0002).
 // The shape matches viem's `Chain`, so `defineChain(MST_TESTNET)` works in the web app.
 
 export const MST_TESTNET = {
@@ -50,8 +50,11 @@ export const NETWORKS = {
 export type NetworkName = keyof typeof NETWORKS;
 export type Network = (typeof NETWORKS)[NetworkName];
 
-/** Blocks to wait before treating an event as final (~3 s blocks under PoSA → ~18 s). */
+/** Blocks to wait before treating an event as final (~3 s blocks → ~18 s). See docs/adr/0004. */
 export const DEFAULT_CONFIRMATIONS = 6;
+
+/** Highest EVM fork live on *both* MST networks (mainnet lacks Cancun). See docs/adr/0003. */
+export const EVM_VERSION = "shanghai";
 
 export function isNetworkName(value: string): value is NetworkName {
   return value in NETWORKS;

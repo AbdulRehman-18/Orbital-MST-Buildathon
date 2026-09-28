@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ThemeProvider } from "next-themes";
+import { ThemeProvider } from "@/components/theme-provider";
 import { Route, Switch } from "wouter";
 import { AppShell } from "@/components/layout/app-shell";
 import { ALL_NAV } from "@/components/layout/nav";
@@ -12,7 +12,7 @@ const queryClient = new QueryClient();
 
 export default function App() {
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem storageKey="ns_theme">
+    <ThemeProvider>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <AppShell>
