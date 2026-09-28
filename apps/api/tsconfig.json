@@ -2,9 +2,23 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src",
-    "types": ["node"]
+    "types": [
+      "node"
+    ]
   },
-  "include": ["src"],
-  "references": [{ "path": "../../packages/chain" }]
+  "include": [
+    "src",
+    "test"
+  ],
+  "references": [
+    {
+      "path": "../../packages/chain"
+    },
+    {
+      "path": "../../packages/db"
+    },
+    {
+      "path": "../../packages/api-zod"
+    }
+  ]
 }
