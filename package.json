@@ -17,7 +17,12 @@
     "infra:up": "docker compose -f infra/compose/docker-compose.dev.yml up -d",
     "infra:down": "docker compose -f infra/compose/docker-compose.dev.yml down",
     "i18n:check": "pnpm --filter @namma-seva/i18n check",
-    "test:contracts": "pnpm --filter @namma-seva/contracts test"
+    "test:contracts": "pnpm --filter @namma-seva/contracts test",
+    "indexer": "pnpm --filter @namma-seva/api indexer:dev",
+    "db:migrate": "pnpm --filter @namma-seva/db migrate",
+    "db:seed": "pnpm --filter @namma-seva/db seed",
+    "test:api": "pnpm --filter @namma-seva/api test",
+    "chain:node": "pnpm --filter @namma-seva/contracts node"
   },
   "devDependencies": {
     "prettier": "^3.8.1",
