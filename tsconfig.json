@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compileOnSave": false,
+  "files": [],
+  "references": [
+    { "path": "./packages/chain" },
+    { "path": "./packages/i18n" },
+    { "path": "./packages/db" },
+    { "path": "./packages/api-zod" },
+    { "path": "./packages/api-client" }
+  ]
+}

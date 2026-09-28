@@ -7,7 +7,7 @@ Rewrite the DecentraliTrack contracts with every audit defect fixed, add grievan
 
 ## 1. Hardhat project (`packages/contracts`)
 Port from `DecentraliTrack/decentralitrack/contracts`:
-- [ ] `hardhat.config.js` → `hardhat.config.ts` (plan §8.1): Solidity `0.8.24`, optimizer 200, `viaIR`, `evmVersion` per Phase 1 ADR, networks `hardhat` / `mstTestnet` / `mstMainnet`, Blockscout `customChains`.
+- [ ] `hardhat.config.js` → `hardhat.config.ts` (plan §8.1): Solidity `0.8.24`, optimizer 200, `viaIR`, `evmVersion: "shanghai"` (ADR 0003 — mainnet lacks Cancun), networks `hardhat` / `mstTestnet` / `mstMainnet`, Blockscout `customChains`.
 - [ ] Plugins: `hardhat-toolbox`, `@openzeppelin/hardhat-upgrades`, `hardhat-gas-reporter`, `solidity-coverage`.
 - [ ] Scripts per §8.2 (`compile`, `test`, `coverage`, `deploy:*`, `verify:*`, `roles:*`, `export-abis`).
 
@@ -24,7 +24,7 @@ Port from `DecentraliTrack/decentralitrack/contracts`:
 - [ ] OpenZeppelin v5, custom errors, NatSpec on every external fn, `ReentrancyGuard` on value-moving fns.
 - [ ] Every event carries `indexed projectId` (+ `indexed actor`) and the CID/hash so the indexer never needs an extra `eth_call`.
 - [ ] State machines exactly as §7.2 (project + milestone).
-- [ ] UUPS proxies for Registry / Escrow / Grievance / Tender; `upgradeTo` gated by ADMIN → multisig + 48 h `TimelockController`.
+- [ ] UUPS proxies for Registry / Escrow / Grievance / Tender; `upgradeTo` gated by ADMIN → `NammaSevaMultisig` + 48 h `TimelockController` (no Safe on MST — ADR 0006).
 
 ## 3. Tests
 - [ ] `test/DecentraliTrack.test.js` → `test/NammaSeva.test.ts`.

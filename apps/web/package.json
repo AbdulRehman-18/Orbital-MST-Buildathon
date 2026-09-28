@@ -1,0 +1,40 @@
+{
+  "name": "@namma-seva/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "ui:add": "node ./scripts/ui-add.mjs"
+  },
+  "dependencies": {
+    "@namma-seva/chain": "workspace:*",
+    "@namma-seva/i18n": "workspace:*",
+    "@tanstack/react-query": "catalog:",
+    "class-variance-authority": "catalog:",
+    "clsx": "catalog:",
+    "i18next": "^25.5.2",
+    "lucide-react": "catalog:",
+    "radix-ui": "^1.6.7",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "react-i18next": "^15.7.3",
+    "sonner": "^2.0.8",
+    "tailwind-merge": "catalog:",
+    "wouter": "^3.7.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "catalog:",
+    "tailwindcss": "catalog:",
+    "tw-animate-css": "^1.3.8",
+    "typescript": "~5.9.2",
+    "vite": "catalog:"
+  }
+}

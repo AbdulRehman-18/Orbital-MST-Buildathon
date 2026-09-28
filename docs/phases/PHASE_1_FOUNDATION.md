@@ -1,5 +1,7 @@
 # Phase 1 — Foundation & Rebrand
 
+> **Status (2026-09-28):** ✅ engineering complete. Remaining items are marked **(You)** — they need wallet/key access.
+
 **Duration:** Week 1 · **Depends on:** — · **Plan refs:** §3, §4, §6, §21
 
 ## Goal
@@ -24,48 +26,48 @@ infra/docker/, infra/compose/
 docs/adr/, docs/runbooks/
 ```
 
-- [ ] `pnpm-workspace.yaml` with `apps/*`, `packages/*`; keep `minimumReleaseAge: 1440` supply-chain guard.
-- [ ] Carry over the pnpm `catalog:` but **unpin React** from `19.1.0` (Expo constraint no longer applies); drop `@replit/*` entries and the Expo ngrok overrides.
-- [ ] `tsconfig.base.json` + project references; root scripts `dev`, `build`, `typecheck`, `lint`, `test`.
-- [ ] Do **not** copy: `decentralitrack/backend`, `decentralitrack/frontend`, `artifacts/mockup-sandbox`, `bricklayer/`, `.local/`, `.replit*`, `replit.md`, `src/abis/*.json`.
+- [x] `pnpm-workspace.yaml` with `apps/*`, `packages/*`; keep `minimumReleaseAge: 1440` supply-chain guard.
+- [x] Carry over the pnpm `catalog:` but **unpin React** from `19.1.0` (Expo constraint no longer applies); drop `@replit/*` entries and the Expo ngrok overrides.
+- [x] `tsconfig.base.json` + project references; root scripts `dev`, `build`, `typecheck`. *(`lint` / `test` land with ESLint + Vitest in Phase 3/4, when there is code to test.)*
+- [x] Do **not** copy: `decentralitrack/backend`, `decentralitrack/frontend`, `artifacts/mockup-sandbox`, `bricklayer/`, `.local/`, `.replit*`, `replit.md`, `src/abis/*.json`.
 
 ## 2. Web shell (shadcn)
-- [ ] Vite + React + TypeScript app in `apps/web`, Wouter routing, TanStack Query.
-- [ ] `npx shadcn@latest init` → `components.json` (`style: new-york`, `baseColor: neutral`, `cssVariables: true`, aliases `@/components`, `@/components/ui`, `@/lib`, `@/hooks`).
-- [ ] Add base components: `button card badge input label form select tabs table dialog sheet dropdown-menu tooltip sonner skeleton separator avatar sidebar breadcrumb`.
-- [ ] Theme tokens in `src/index.css` (Tailwind v4 `@theme inline`): civic **saffron** primary, **teal** accent, neutral surfaces; light + dark via `next-themes`; verify WCAG AA contrast.
-- [ ] App layout: shadcn `Sidebar` (role nav) + top bar (language picker placeholder, network badge placeholder, theme toggle).
-- [ ] Brand: name **Namma Seva**, tagline *"Every rupee, on-chain. Every citizen, informed."*, logo, favicon, OG image, `index.html` meta.
-- [ ] Remove all Replit Vite plugins from `vite.config.ts`.
+- [x] Vite + React + TypeScript app in `apps/web`, Wouter routing, TanStack Query.
+- [x] `npx shadcn@latest init` → `components.json` (`style: new-york`, `baseColor: neutral`, `cssVariables: true`, aliases `@/components`, `@/components/ui`, `@/lib`, `@/hooks`).
+- [x] Add base components: `button card badge input label select tabs table dialog sheet dropdown-menu tooltip sonner skeleton separator avatar sidebar breadcrumb alert accordion progress` via `pnpm --filter @namma-seva/web ui:add`. *(`form` deferred to Phase 4 with react-hook-form.)*
+- [x] Theme tokens in `src/index.css` (Tailwind v4 `@theme inline`): civic **saffron** primary, **teal** accent, neutral surfaces; light + dark via a local `ThemeProvider` (shadcn's Vite recipe — `next-themes` triggers a React 19.2 script warning); primary/civic pairs are Tailwind orange-700 / teal-700 on white (≥ 5:1).
+- [x] App layout: shadcn `Sidebar` (role nav) + top bar (language picker placeholder, network badge placeholder, theme toggle).
+- [x] Brand: name **Namma Seva**, tagline *"Every rupee, on-chain. Every citizen, informed."*, logo, favicon, OG image, `index.html` meta.
+- [x] Remove all Replit Vite plugins from `vite.config.ts`.
 
 ## 3. API shell
-- [ ] Express 5 + TS skeleton in `apps/api` (port structure from `artifacts/api-server/src`: `app.ts`, `index.ts`, `lib/logger.ts`, `routes/health.ts`).
-- [ ] `/api/health` only; pino logging with request IDs.
+- [x] Express 5 + TS skeleton in `apps/api` (port structure from `artifacts/api-server/src`: `app.ts`, `index.ts`, `lib/logger.ts`, `routes/health.ts`).
+- [x] `/api/health` only; pino logging with request IDs.
 
 ## 4. `packages/chain`
-- [ ] `networks.ts` with `MST_TESTNET` / `MST_MAINNET` / `LOCAL` (plan §9.1) — viem `defineChain`-compatible shape.
-- [ ] `explorer.ts` helpers: `txUrl(hash)`, `addressUrl(addr)`, `blockUrl(n)` → mstscan.
-- [ ] Placeholder `deployments/` + `abis/` (filled in Phase 2).
+- [x] `networks.ts` with `MST_TESTNET` / `MST_MAINNET` / `LOCAL` (plan §9.1) — viem `defineChain`-compatible shape.
+- [x] `explorer.ts` helpers: `txUrl(hash)`, `addressUrl(addr)`, `blockUrl(n)` → mstscan.
+- [x] Placeholder `deployments/` + `abis/` (filled in Phase 2).
 
 ## 5. Environment & secrets
-- [ ] `.env.example` from plan Appendix A (`NS_*`, `MST_*`, `VITE_NS_*`); **no `PRIVKEY_*` role keys**.
-- [ ] `.gitignore` covers `.env*`, `deployments/localhost.json`, build output.
-- [ ] Rotate any keys that were used in the DecentraliTrack hackathon build.
+- [x] `.env.example` from plan Appendix A (`NS_*`, `MST_*`, `VITE_NS_*`); **no `PRIVKEY_*` role keys**.
+- [x] `.gitignore` covers `.env*`, `deployments/localhost.json`, build output.
+- [ ] **(You)** Rotate any keys that were used in the DecentraliTrack hackathon build.
 
 ## 6. MST verification & ADRs
-- [ ] Add MST Testnet to team wallets (Appendix B); fund deployer, relayer, 2 officials, 3 auditors, 2 contractors from the faucet.
-- [ ] Resolve the §21 questions against docs.mstblockchain.com — at minimum: EVM version (`paris` vs `shanghai`), `eth_getLogs` range limit, finality/confirmations, Blockscout verify API path, EIP-1559 vs legacy gas, BridgeKey provider.
-- [ ] Record each answer as `docs/adr/000N-*.md`.
+- [ ] **(You)** Add MST Testnet to team wallets (Appendix B); fund deployer, relayer, 2 officials, 3 auditors, 2 contractors from the faucet.
+- [x] Resolve the §21 questions against docs.mstblockchain.com **and the live RPCs** — 8 of 12 resolved; BridgeKey, deployer whitelisting, faucet allocation and grants need MST support (see `docs/adr/README.md`).
+- [x] Record each answer as `docs/adr/000N-*.md`.
 
 ## 7. Local infra
-- [ ] `infra/compose/docker-compose.dev.yml`: Postgres 16 + Redis + Hardhat node.
+- [x] `infra/compose/docker-compose.dev.yml`: Postgres 16 + Redis (local Hardhat node runs from `packages/contracts` once it exists in Phase 2).
 
 ## Deliverables
 - Building monorepo; `pnpm dev` serves rebranded shadcn shell + API health.
 - `packages/chain` with MST networks; ADRs for §21.
 
 ## Exit criteria
-- [ ] `pnpm install && pnpm build && pnpm typecheck` green from clean clone.
-- [ ] Web shell renders in light/dark with Namma Seva branding; no Replit/Expo deps in the lockfile.
-- [ ] Team wallets hold tMSTC on MST testnet.
-- [ ] README rewritten for Namma Seva.
+- [x] `pnpm install && pnpm build && pnpm typecheck` green from clean clone.
+- [x] Web shell renders in light/dark and in all 4 languages with Namma Seva branding; no Replit/Expo deps installed (lockfile only lists drizzle-orm's optional `expo-sqlite` peer).
+- [ ] **(You)** Team wallets hold tMSTC on MST testnet.
+- [x] README rewritten for Namma Seva.

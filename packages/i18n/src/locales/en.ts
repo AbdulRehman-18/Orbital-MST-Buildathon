@@ -1,0 +1,47 @@
+export const en = {
+  brand: {
+    name: "Namma Seva",
+    tagline: "Every rupee, on-chain. Every citizen, informed.",
+  },
+  nav: {
+    home: "Home",
+    projects: "Projects",
+    verify: "Verify",
+    ledger: "Ledger",
+    tenders: "Tenders",
+    citizen: "Citizen",
+    official: "Official",
+    contractor: "Contractor",
+    auditor: "Auditor",
+    admin: "Admin",
+    public: "Public",
+    workspaces: "Workspaces",
+  },
+  common: {
+    language: "Language",
+    theme: "Theme",
+    light: "Light",
+    dark: "Dark",
+    system: "System",
+    comingSoon: "Coming soon",
+    network: "Network",
+    connectWallet: "Connect wallet",
+  },
+  home: {
+    heroTitle: "See how public money builds your ward",
+    heroBody:
+      "Every project, milestone, proof photo and payment is recorded on MST Blockchain, so no one can quietly edit or delete it.",
+    ctaExplore: "Explore projects",
+    ctaVerify: "Verify a record",
+    stepsTitle: "How verification works",
+    step1Title: "Recorded on-chain",
+    step1Body: "Officials, auditors and contractors sign every action with their own wallet.",
+    step2Title: "Proof you can check",
+    step2Body: "Photos with GPS and time are pinned to IPFS; their fingerprint is stored on-chain.",
+    step3Title: "Citizens have a voice",
+    step3Body: "Raise and upvote grievances with just your phone number — no crypto wallet needed.",
+  },
+  placeholder: {
+    body: "This page is part of the Namma Seva roadmap and will be built in {{phase}}.",
+  },
+} as const;
