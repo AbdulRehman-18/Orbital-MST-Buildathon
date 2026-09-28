@@ -233,8 +233,13 @@ describe("proof upload", () => {
       .field("lngE6", "77594620")
       .expect(201);
     expect(res.body).toMatchObject({ milestoneId: 2, latE6: 12971650, lngE6: 77594620 });
-    expect(res.body.warnings).toEqual(["site.png: no EXIF GPS"]);
-    expect(res.body.media[0]).toMatchObject({ mime: "image/png", flagged: true });
+    expect(res.body.warnings).toEqual(["site.png: geofence — No EXIF GPS", "site.png: time — No EXIF capture time"]);
+    expect(res.body.media[0]).toMatchObject({
+      mime: "image/jpeg", // re-encoded, metadata stripped
+      flagged: true,
+      checks: { geofence: { ok: false }, time: { ok: false }, duplicate: { ok: true }, capture: { ok: true } },
+    });
+    expect(res.body.media[0].thumbCid).toBeTruthy();
     const pinned = t.ctx.ipfs.get!(res.body.proofCID)!;
     expect(keccak256(pinned.bytes)).toBe(res.body.proofHash);
     const proof = await request(t.app).get("/api/milestones/2/proof").expect(200);
