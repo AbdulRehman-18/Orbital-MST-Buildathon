@@ -13,6 +13,7 @@
  *
  * OpenAPI spec version: 0.3.0
  */
+import type { ProofMediaChecks } from './proofMediaChecks';
 
 export interface ProofMedia {
   cid: string;
@@ -27,4 +28,11 @@ export interface ProofMedia {
   /** @nullable */
   gpsDistanceM: number | null;
   flagged: boolean;
+  /** @nullable */
+  thumbCid: string | null;
+  /**
+     * Integrity checks (`capture`, `geofence`, `time`, `duplicate`). A failed check flags the photo but never blocks submission.
+     * @nullable
+     */
+  checks: ProofMediaChecks;
 }

@@ -39,6 +39,7 @@ import type {
   Department,
   Error,
   ExportProjectsCsvParams,
+  ExportProjectsJsonParams,
   FileGrievanceRequest,
   GetProjectStatsParams,
   Grievance,
@@ -57,6 +58,7 @@ import type {
   OtpVerifyRequest,
   PinMetadataRequest,
   PinnedMetadata,
+  Project,
   ProjectDetail,
   ProjectPage,
   ProjectStats,
@@ -65,6 +67,7 @@ import type {
   ProofUploadResponse,
   ReadyStatus,
   RelayJob,
+  ResolveAnomalyRequest,
   RoleHolder,
   SessionUser,
   SiweNonceResponse,
@@ -1795,6 +1798,9 @@ if(proofUploadForm.lngE6 !== undefined) {
 if(proofUploadForm.note !== undefined) {
  formData.append(`note`, proofUploadForm.note);
  }
+if(proofUploadForm.source !== undefined) {
+ formData.append(`source`, proofUploadForm.source);
+ }
 
   return customFetch<ProofUploadResponse>(getUploadMilestoneProofUrl(id),
   {
@@ -2851,6 +2857,95 @@ export function useListAnomalies<TData = Awaited<ReturnType<typeof listAnomalies
 
 
 
+export const getResolveAnomalyUrl = (id: string,) => {
+
+
+
+
+  return `/api/anomalies/${id}/resolve`
+}
+
+/**
+ * @summary Auditor marks an anomaly reviewed (audit-logged)
+ */
+export const resolveAnomaly = async (id: string,
+    resolveAnomalyRequest: ResolveAnomalyRequest, options?: Parameters<typeof customFetch>[1]): Promise<Anomaly> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<Anomaly>(getResolveAnomalyUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(resolveAnomalyRequest)
+  }
+);}
+
+
+
+
+
+export const getResolveAnomalyMutationKey = () => ['resolveAnomaly'] as const;
+
+export const getResolveAnomalyMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resolveAnomaly>>, TError,ResolveAnomalyMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resolveAnomaly>>, TError,ResolveAnomalyMutationVariables, TContext> => {
+
+const mutationKey = getResolveAnomalyMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resolveAnomaly>>, ResolveAnomalyMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  resolveAnomaly(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResolveAnomalyMutationResult = NonNullable<Awaited<ReturnType<typeof resolveAnomaly>>>
+    export type ResolveAnomalyMutationBody = BodyType<ResolveAnomalyRequest>
+    export type ResolveAnomalyMutationError = ErrorType<Error>
+    export type ResolveAnomalyMutationVariables = {id: string;data: BodyType<ResolveAnomalyRequest>}
+
+    /**
+ * @summary Auditor marks an anomaly reviewed (audit-logged)
+ */
+export const useResolveAnomaly = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resolveAnomaly>>, TError,ResolveAnomalyMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resolveAnomaly>>,
+        TError,
+        ResolveAnomalyMutationVariables,
+        TContext
+      > => {
+      return useMutation(getResolveAnomalyMutationOptions(options));
+    }
+
 export const getListRoleHoldersUrl = () => {
 
 
@@ -3077,6 +3172,90 @@ export function useExportProjectsCsv<TData = Awaited<ReturnType<typeof exportPro
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getExportProjectsCsvQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getExportProjectsJsonUrl = (params?: ExportProjectsJsonParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/public/export.json?${stringifiedParams}` : `/api/public/export.json`
+}
+
+/**
+ * @summary Open-data JSON of projects (optionally one ward)
+ */
+export const exportProjectsJson = async (params?: ExportProjectsJsonParams, options?: Parameters<typeof customFetch>[1]): Promise<Project[]> => {
+
+  return customFetch<Project[]>(getExportProjectsJsonUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getExportProjectsJsonQueryKey = (params?: ExportProjectsJsonParams,) => {
+    return [
+    `/api/public/export.json`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getExportProjectsJsonQueryOptions = <TData = Awaited<ReturnType<typeof exportProjectsJson>>, TError = ErrorType<unknown>>(params?: ExportProjectsJsonParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof exportProjectsJson>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getExportProjectsJsonQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof exportProjectsJson>>> = ({ signal }) => exportProjectsJson(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof exportProjectsJson>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ExportProjectsJsonQueryResult = NonNullable<Awaited<ReturnType<typeof exportProjectsJson>>>
+export type ExportProjectsJsonQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Open-data JSON of projects (optionally one ward)
+ */
+
+export function useExportProjectsJson<TData = Awaited<ReturnType<typeof exportProjectsJson>>, TError = ErrorType<unknown>>(
+ params?: ExportProjectsJsonParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof exportProjectsJson>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getExportProjectsJsonQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

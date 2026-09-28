@@ -438,7 +438,7 @@ export const GetProjectResponse = zod.object({
   "id": zod.string(),
   "projectId": zod.int(),
   "rule": zod.string(),
-  "severity": zod.enum(['INFO', 'WARNING', 'CRITICAL']),
+  "severity": zod.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
   "details": zod.record(zod.string(), zod.unknown()),
   "detectedAt": zod.coerce.date(),
   "resolvedAt": zod.coerce.date().nullable()
@@ -642,7 +642,8 @@ export const UploadMilestoneProofBody = zod.object({
   "photos": zod.array(zod.instanceof(Blob)).max(uploadMilestoneProofBodyPhotosMax),
   "latE6": zod.int().optional().describe('Device GPS fix'),
   "lngE6": zod.int().optional(),
-  "note": zod.string().max(uploadMilestoneProofBodyNoteMax).optional()
+  "note": zod.string().max(uploadMilestoneProofBodyNoteMax).optional(),
+  "source": zod.enum(['camera', 'gallery']).optional().describe('How the photo was captured. In strict mode anything but `camera` fails the capture check.')
 })
 
 export const uploadMilestoneProofResponseProofHashRegExp = new RegExp('^0x[0-9a-fA-F]{64}$');
@@ -662,7 +663,12 @@ export const UploadMilestoneProofResponse = zod.object({
   "exifLng": zod.number().nullable(),
   "exifTime": zod.coerce.date().nullable(),
   "gpsDistanceM": zod.number().nullable(),
-  "flagged": zod.boolean()
+  "flagged": zod.boolean(),
+  "thumbCid": zod.string().nullable(),
+  "checks": zod.record(zod.string(), zod.object({
+  "ok": zod.boolean(),
+  "detail": zod.string().optional()
+})).nullable().describe('Integrity checks (`capture`, `geofence`, `time`, `duplicate`). A failed check flags the photo but never blocks submission.')
 })),
   "warnings": zod.array(zod.string())
 }).describe('Arguments for `MilestoneEscrow.submitProof(milestoneId, proofCID, proofHash, latE6, lngE6)`.')
@@ -680,7 +686,12 @@ export const GetMilestoneProofResponseItem = zod.object({
   "exifLng": zod.number().nullable(),
   "exifTime": zod.coerce.date().nullable(),
   "gpsDistanceM": zod.number().nullable(),
-  "flagged": zod.boolean()
+  "flagged": zod.boolean(),
+  "thumbCid": zod.string().nullable(),
+  "checks": zod.record(zod.string(), zod.object({
+  "ok": zod.boolean(),
+  "detail": zod.string().optional()
+})).nullable().describe('Integrity checks (`capture`, `geofence`, `time`, `duplicate`). A failed check flags the photo but never blocks submission.')
 })
 export const GetMilestoneProofResponse = zod.array(GetMilestoneProofResponseItem)
 
@@ -970,12 +981,38 @@ export const ListAnomaliesResponseItem = zod.object({
   "id": zod.string(),
   "projectId": zod.int(),
   "rule": zod.string(),
-  "severity": zod.enum(['INFO', 'WARNING', 'CRITICAL']),
+  "severity": zod.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
   "details": zod.record(zod.string(), zod.unknown()),
   "detectedAt": zod.coerce.date(),
   "resolvedAt": zod.coerce.date().nullable()
 })
 export const ListAnomaliesResponse = zod.array(ListAnomaliesResponseItem)
+
+
+/**
+ * @summary Auditor marks an anomaly reviewed (audit-logged)
+ */
+export const ResolveAnomalyParams = zod.object({
+  "id": zod.uuid()
+})
+
+export const resolveAnomalyBodyNoteMax = 1000;
+
+
+
+export const ResolveAnomalyBody = zod.object({
+  "note": zod.string().min(1).max(resolveAnomalyBodyNoteMax)
+})
+
+export const ResolveAnomalyResponse = zod.object({
+  "id": zod.string(),
+  "projectId": zod.int(),
+  "rule": zod.string(),
+  "severity": zod.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
+  "details": zod.record(zod.string(), zod.unknown()),
+  "detectedAt": zod.coerce.date(),
+  "resolvedAt": zod.coerce.date().nullable()
+})
 
 
 /**
@@ -1024,5 +1061,48 @@ export const ExportProjectsCsvQueryParams = zod.object({
 })
 
 export const ExportProjectsCsvResponse = zod.unknown()
+
+
+/**
+ * @summary Open-data JSON of projects (optionally one ward)
+ */
+export const ExportProjectsJsonQueryParams = zod.object({
+  "wardId": zod.coerce.number().int().optional()
+})
+
+export const exportProjectsJsonResponseBudgetRegExp = new RegExp('^[0-9]+$');
+export const exportProjectsJsonResponseSpentRegExp = new RegExp('^[0-9]+$');
+export const exportProjectsJsonResponseFundedRegExp = new RegExp('^[0-9]+$');
+
+
+export const ExportProjectsJsonResponseItem = zod.object({
+  "id": zod.int(),
+  "title": zod.string().nullable(),
+  "description": zod.string().nullable(),
+  "category": zod.enum(['ROAD', 'DRAINAGE', 'WATER_SUPPLY', 'STREET_LIGHTING', 'PARK', 'BUILDING', 'OTHER']),
+  "status": zod.enum(['PENDING_APPROVAL', 'ACTIVE', 'PAUSED', 'COMPLETED', 'CANCELLED']),
+  "wardId": zod.int(),
+  "deptId": zod.int(),
+  "latE6": zod.int(),
+  "lngE6": zod.int(),
+  "budget": zod.string().regex(exportProjectsJsonResponseBudgetRegExp).describe('Non-negative integer as a decimal string.'),
+  "spent": zod.string().regex(exportProjectsJsonResponseSpentRegExp).describe('Non-negative integer as a decimal string.'),
+  "funded": zod.string().regex(exportProjectsJsonResponseFundedRegExp).describe('Non-negative integer as a decimal string.'),
+  "officialAddr": zod.string(),
+  "contractorAddr": zod.string().nullable(),
+  "approvalThreshold": zod.int(),
+  "approvalCount": zod.int(),
+  "milestoneCount": zod.int(),
+  "cancelRequested": zod.boolean(),
+  "metaCid": zod.string(),
+  "metaHash": zod.string(),
+  "startDate": zod.coerce.date(),
+  "endDate": zod.coerce.date(),
+  "createdAt": zod.coerce.date(),
+  "createdTx": zod.string(),
+  "createdBlock": zod.int(),
+  "updatedBlock": zod.int()
+})
+export const ExportProjectsJsonResponse = zod.array(ExportProjectsJsonResponseItem)
 
 

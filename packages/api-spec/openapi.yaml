@@ -389,7 +389,17 @@ components:
         exifTime: { type: [string, "null"], format: date-time }
         gpsDistanceM: { type: [number, "null"] }
         flagged: { type: boolean }
-      required: [cid, sha256, mime, exifLat, exifLng, exifTime, gpsDistanceM, flagged]
+        thumbCid: { type: [string, "null"] }
+        checks:
+          type: [object, "null"]
+          description: Integrity checks (`capture`, `geofence`, `time`, `duplicate`). A failed check flags the photo but never blocks submission.
+          additionalProperties:
+            type: object
+            properties:
+              ok: { type: boolean }
+              detail: { type: string }
+            required: [ok]
+      required: [cid, sha256, mime, exifLat, exifLng, exifTime, gpsDistanceM, flagged, thumbCid, checks]
     ProofUploadForm:
       type: object
       properties:
@@ -400,6 +410,10 @@ components:
         latE6: { type: integer, description: Device GPS fix, used when a photo has no EXIF GPS. }
         lngE6: { type: integer }
         note: { type: string, maxLength: 1000 }
+        source:
+          type: string
+          enum: [camera, gallery]
+          description: How the photo was captured. In strict mode anything but `camera` fails the capture check.
       required: [photos]
     ProofUploadResponse:
       type: object
@@ -643,13 +657,19 @@ components:
         id: { type: string }
         projectId: { type: integer }
         rule: { type: string }
-        severity: { type: string, enum: [INFO, WARNING, CRITICAL] }
+        severity: { type: string, enum: [LOW, MEDIUM, HIGH, CRITICAL] }
         details:
           type: object
           additionalProperties: true
         detectedAt: { type: string, format: date-time }
         resolvedAt: { type: [string, "null"], format: date-time }
       required: [id, projectId, rule, severity, details, detectedAt, resolvedAt]
+
+    ResolveAnomalyRequest:
+      type: object
+      properties:
+        note: { type: string, minLength: 1, maxLength: 1000 }
+      required: [note]
 
 security: []
 
@@ -1248,6 +1268,30 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/Anomaly" }
+  /anomalies/{id}/resolve:
+    post:
+      operationId: resolveAnomaly
+      tags: [chain]
+      security: [{ bearer: [] }]
+      summary: Auditor marks an anomaly reviewed (audit-logged)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ResolveAnomalyRequest" }
+      responses:
+        "200":
+          description: Resolved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Anomaly" }
+        "404":
+          description: Unknown anomaly
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
 
   /roles:
     get:
@@ -1288,3 +1332,18 @@ paths:
           content:
             text/csv:
               schema: { type: string }
+  /public/export.json:
+    get:
+      operationId: exportProjectsJson
+      tags: [public]
+      summary: Open-data JSON of projects (optionally one ward)
+      parameters:
+        - { name: wardId, in: query, schema: { type: integer } }
+      responses:
+        "200":
+          description: JSON
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Project" }
