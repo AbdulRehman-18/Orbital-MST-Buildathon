@@ -29,12 +29,13 @@ Public project data is often fragmented, delayed, or hard to verify. Namma Seva 
 
 ## Status
 
-**Phase 3 of 6 — Data layer, indexer & API** (engineering complete against a local chain; MST testnet run pending the testnet deploy).
+**Phase 4 of 6 — Web app, wallets & i18n** (engineering complete against a local chain; MST testnet run pending the testnet deploy).
 
 - ✅ Phase 1: monorepo, shadcn web shell, API shell, MST chain package, ADRs
 - ✅ Phase 2: 6 contracts + multisig/timelock, 109 tests, audit regressions, Slither clean — see [packages/contracts](packages/contracts/README.md)
 - ✅ Phase 3: Postgres read model, reorg-safe indexer, SIWE + phone OTP, gasless relayer, OpenAPI v0.3 — see the [backend runbook](docs/runbooks/backend-local.md) and [ADR 0010](docs/adr/0010-backend-indexer-relayer.md)
-- 🟨 Next: deploy to MST testnet ([runbook](docs/runbooks/deploy-mst-testnet.md)), then Phase 4 — web app on live data
+- ✅ Phase 4: role dashboards (citizen, official, auditor, contractor, admin), live map, wallet-signed flows, 4 languages, PWA — try it with `pnpm demo`
+- 🟨 Next: deploy to MST testnet ([runbook](docs/runbooks/deploy-mst-testnet.md)), then Phase 5 — grievance/tender/integrity features
 - 🎯 Target: production-ready pilot after the hardening and audit phase
 
 ## Delivery roadmap
@@ -101,6 +102,19 @@ docs/
 Contracts compile for `evmVersion: "shanghai"`: MST mainnet does not support Cancun opcodes yet
 ([ADR 0003](docs/adr/0003-evm-version-shanghai.md)).
 
+## Try the demo (one command)
+
+No Docker, wallet or SMS needed — a local chain, in-memory Postgres, the indexer, API and web app:
+
+```bash
+pnpm demo
+```
+
+Open http://localhost:5173/login and pick a role card: citizens (phone OTP shown on screen), ward
+officials, auditors, contractors or the admin. Every card signs in with a burner wallet and sends
+real transactions, so approvals, proofs, payments and grievances show up on every dashboard within
+seconds ([ADR 0011](docs/adr/0011-demo-mode.md)).
+
 ## Getting started
 
 Requires Node 22.13+ (`nvm use` reads `.nvmrc`) and pnpm 10.
@@ -140,6 +154,7 @@ pnpm infra:up
 | `pnpm db:migrate` / `pnpm db:seed` | Apply migrations / seed BBMP wards + departments |
 | `pnpm indexer` | Run the chain indexer (separate process) |
 | `pnpm chain:node` | Local Hardhat chain for development |
+| `pnpm demo` | Whole stack locally with seeded demo data and role cards |
 | `pnpm --filter @namma-seva/api-spec codegen` | Regenerate zod + client from OpenAPI |
 
 ### Adding UI components

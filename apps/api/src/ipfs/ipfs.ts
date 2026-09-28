@@ -1,7 +1,10 @@
 // Ported from DecentraliTrack's services/ipfsService.ts (Pinata). Redundant pinning, gateway
 // fallbacks and content re-verification are Phase 5 hardening.
 import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import path from "node:path";
 import type { Logger } from "pino";
+import { WORKSPACE_ROOT } from "../lib/paths";
 
 export interface IpfsService {
   readonly kind: "pinata" | "local";
@@ -54,16 +57,32 @@ export class LocalIpfs implements IpfsService {
   readonly kind = "local";
   private readonly store = new Map<string, { bytes: Uint8Array; mime: string }>();
 
-  constructor(private readonly publicBaseUrl: string) {}
+  /** With `dir`, pins persist on disk and are shared by every process (API, demo seed). */
+  constructor(
+    private readonly publicBaseUrl: string,
+    private readonly dir?: string,
+  ) {
+    if (dir) mkdirSync(dir, { recursive: true });
+  }
 
   async pin(bytes: Uint8Array, _name: string, mime: string): Promise<string> {
     const cid = rawCidV1(bytes);
     this.store.set(cid, { bytes, mime });
+    if (this.dir) {
+      writeFileSync(path.join(this.dir, cid), bytes);
+      writeFileSync(path.join(this.dir, `${cid}.mime`), mime);
+    }
     return cid;
   }
 
   get(cid: string) {
-    return this.store.get(cid);
+    const hit = this.store.get(cid);
+    if (hit || !this.dir || !/^b[a-z2-7]{20,}$/.test(cid)) return hit;
+    const file = path.join(this.dir, cid);
+    if (!existsSync(file)) return undefined;
+    const item = { bytes: new Uint8Array(readFileSync(file)), mime: readFileSync(`${file}.mime`, "utf8") };
+    this.store.set(cid, item);
+    return item;
   }
 
   gatewayUrl(cid: string) {
@@ -72,13 +91,13 @@ export class LocalIpfs implements IpfsService {
 }
 
 export function createIpfs(
-  opts: { pinataJwt?: string; gateway?: string; production: boolean; apiBaseUrl: string },
+  opts: { pinataJwt?: string; gateway?: string; production: boolean; apiBaseUrl: string; localDir?: string },
   logger: Logger,
 ): IpfsService {
   if (opts.pinataJwt) return new PinataIpfs(opts.pinataJwt, opts.gateway, logger);
   if (opts.production) throw new Error("PINATA_JWT is required in production.");
-  logger.warn("PINATA_JWT not set — using the in-memory dev IPFS store (pins vanish on restart)");
-  return new LocalIpfs(opts.apiBaseUrl);
+  logger.warn({ dir: opts.localDir ?? "(memory)" }, "PINATA_JWT not set — using the local dev IPFS store");
+  return new LocalIpfs(opts.apiBaseUrl, opts.localDir);
 }
 
 /** CIDv1, raw codec (0x55), sha2-256 multihash, base32 multibase ("b…"). */
@@ -103,4 +122,9 @@ function base32(data: Uint8Array): string {
   }
   if (bits > 0) out += alphabet[(value << (5 - bits)) & 31];
   return out;
+}
+
+/** `<repo>/.data/ipfs` in a checkout (git-ignored); undefined in containers. */
+export function devIpfsDir(): string | undefined {
+  return WORKSPACE_ROOT ? path.join(WORKSPACE_ROOT, ".data", "ipfs") : undefined;
 }

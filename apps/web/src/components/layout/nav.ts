@@ -8,33 +8,46 @@ import {
   Search,
   Settings,
   ShieldCheck,
-  Users,
+  UserRound,
   type LucideIcon,
 } from "lucide-react";
+import type { Role } from "@/lib/auth";
 
 export type NavItem = {
   path: string;
   /** i18n key under `nav.*` */
   labelKey: string;
   icon: LucideIcon;
-  /** Phase that delivers this screen (docs/phases). */
-  phase: number;
 };
 
 export const PUBLIC_NAV: NavItem[] = [
-  { path: "/", labelKey: "nav.home", icon: Home, phase: 1 },
-  { path: "/projects", labelKey: "nav.projects", icon: Building2, phase: 4 },
-  { path: "/verify", labelKey: "nav.verify", icon: Search, phase: 4 },
-  { path: "/ledger", labelKey: "nav.ledger", icon: ScrollText, phase: 4 },
-  { path: "/tenders", labelKey: "nav.tenders", icon: Gavel, phase: 5 },
+  { path: "/", labelKey: "nav.home", icon: Home },
+  { path: "/projects", labelKey: "nav.projects", icon: Building2 },
+  { path: "/verify", labelKey: "nav.verify", icon: Search },
+  { path: "/ledger", labelKey: "nav.ledger", icon: ScrollText },
+  { path: "/tenders", labelKey: "nav.tenders", icon: Gavel },
 ];
 
-export const ROLE_NAV: NavItem[] = [
-  { path: "/citizen", labelKey: "nav.citizen", icon: Users, phase: 4 },
-  { path: "/official", labelKey: "nav.official", icon: Landmark, phase: 4 },
-  { path: "/contractor", labelKey: "nav.contractor", icon: HardHat, phase: 4 },
-  { path: "/auditor", labelKey: "nav.auditor", icon: ShieldCheck, phase: 4 },
-  { path: "/admin", labelKey: "nav.admin", icon: Settings, phase: 4 },
-];
+/** Each role gets exactly one workspace; the sidebar shows only the signed-in user's. */
+export const ROLE_NAV: Record<Role, NavItem | null> = {
+  CITIZEN: { path: "/citizen", labelKey: "nav.citizen", icon: UserRound },
+  GOVT_OFFICIAL: { path: "/official", labelKey: "nav.official", icon: Landmark },
+  CONTRACTOR: { path: "/contractor", labelKey: "nav.contractor", icon: HardHat },
+  AUDITOR: { path: "/auditor", labelKey: "nav.auditor", icon: ShieldCheck },
+  ADMIN: { path: "/admin", labelKey: "nav.admin", icon: Settings },
+  PUBLIC: null,
+};
 
-export const ALL_NAV = [...PUBLIC_NAV, ...ROLE_NAV];
+export const ROLE_ICON: Record<Role, LucideIcon> = {
+  CITIZEN: UserRound,
+  GOVT_OFFICIAL: Landmark,
+  CONTRACTOR: HardHat,
+  AUDITOR: ShieldCheck,
+  ADMIN: Settings,
+  PUBLIC: UserRound,
+};
+
+/** Workspaces a user can open: one per on-chain role they hold (a wallet may hold several). */
+export function workspacesFor(roles: Role[]): NavItem[] {
+  return roles.map((r) => ROLE_NAV[r]).filter((x): x is NavItem => !!x);
+}

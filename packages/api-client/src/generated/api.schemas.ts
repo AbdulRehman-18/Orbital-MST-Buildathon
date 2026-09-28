@@ -133,6 +133,8 @@ export interface OtpSendRequest {
 export interface OtpSendResponse {
   sent: boolean;
   expiresIn: number;
+  /** DEMO MODE ONLY — the code, shown on screen so anyone can try the citizen flow. */
+  devCode?: string;
 }
 
 export interface OtpVerifyRequest {
@@ -743,6 +745,74 @@ export interface ChainStatus {
   relayer: ChainStatusRelayer;
 }
 
+export type DemoAccountRole = typeof DemoAccountRole[keyof typeof DemoAccountRole];
+
+
+export const DemoAccountRole = {
+  ADMIN: 'ADMIN',
+  GOVT_OFFICIAL: 'GOVT_OFFICIAL',
+  AUDITOR: 'AUDITOR',
+  CONTRACTOR: 'CONTRACTOR',
+} as const;
+
+export interface DemoAccount {
+  key: string;
+  /** BIP-44 address index under m/44'/60'/0'/0 */
+  index: number;
+  role: DemoAccountRole;
+  name: string;
+  title: string;
+  address: string;
+  wards: number[];
+  allWards: boolean;
+}
+
+export interface DemoCitizen {
+  key: string;
+  name: string;
+  area: string;
+  phone: string;
+}
+
+export interface DemoConfig {
+  enabled: boolean;
+  /**
+     * Burner mnemonic (demo mode only; never a real key).
+     * @nullable
+     */
+  mnemonic: string | null;
+  chainId: number;
+  accounts: DemoAccount[];
+  citizens: DemoCitizen[];
+}
+
+export interface RoleHolder {
+  address: string;
+  roles: string[];
+  wards: number[];
+  allWards: boolean;
+}
+
+export type MilestoneWithProjectProject = {
+  id: number;
+  /** @nullable */
+  title: string | null;
+  status: ProjectStatus;
+  wardId: number;
+  latE6: number;
+  lngE6: number;
+  officialAddr: string;
+  /** @nullable */
+  contractorAddr: string | null;
+  approvalThreshold: number;
+};
+
+export type MilestoneWithProject = Milestone & {
+  /** Auditors who approved in the current review round. */
+  approvers: string[];
+  project: MilestoneWithProjectProject;
+};
+
 export type LimitParameter = number;
 
 export type OffsetParameter = number;
@@ -764,6 +834,14 @@ offset?: OffsetParameter;
 };
 
 export type GetProjectStatsParams = {
+wardId?: number;
+};
+
+export type ListMilestonesParams = {
+projectId?: number;
+status?: MilestoneStatus;
+contractor?: string;
+official?: string;
 wardId?: number;
 };
 
@@ -813,6 +891,7 @@ export type ListLedgerEventsParams = {
 contract?: string;
 eventName?: string;
 projectId?: number;
+txHash?: string;
 includePending?: boolean;
 /**
  * @minimum 1

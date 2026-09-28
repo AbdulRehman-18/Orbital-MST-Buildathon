@@ -107,7 +107,8 @@ export const SendOtpBody = zod.object({
 
 export const SendOtpResponse = zod.object({
   "sent": zod.boolean(),
-  "expiresIn": zod.int()
+  "expiresIn": zod.int(),
+  "devCode": zod.string().optional().describe('DEMO MODE ONLY — the code, shown on screen so anyone can try the citizen flow.')
 })
 
 
@@ -507,6 +508,58 @@ export const VerifyProjectResponse = zod.object({
 
 
 /**
+ * @summary Milestones with their project and current-round approvers (dashboard queues)
+ */
+export const ListMilestonesQueryParams = zod.object({
+  "projectId": zod.coerce.number().int().optional(),
+  "status": zod.enum(['PENDING', 'PROOF_SUBMITTED', 'APPROVED', 'REJECTED', 'PAID', 'VOID']).optional(),
+  "contractor": zod.coerce.string().optional(),
+  "official": zod.coerce.string().optional(),
+  "wardId": zod.coerce.number().int().optional()
+})
+
+export const listMilestonesResponseOneAmountRegExp = new RegExp('^[0-9]+$');
+
+
+export const ListMilestonesResponseItem = zod.object({
+  "id": zod.int(),
+  "projectId": zod.int(),
+  "title": zod.string().nullable(),
+  "description": zod.string().nullable(),
+  "amount": zod.string().regex(listMilestonesResponseOneAmountRegExp).describe('Non-negative integer as a decimal string.'),
+  "status": zod.enum(['PENDING', 'PROOF_SUBMITTED', 'APPROVED', 'REJECTED', 'PAID', 'VOID']),
+  "round": zod.int(),
+  "approvalCount": zod.int(),
+  "metaCid": zod.string(),
+  "proofCid": zod.string().nullable(),
+  "proofHash": zod.string().nullable(),
+  "proofLatE6": zod.int().nullable(),
+  "proofLngE6": zod.int().nullable(),
+  "submittedBy": zod.string().nullable(),
+  "submittedAt": zod.coerce.date().nullable(),
+  "paidTx": zod.string().nullable(),
+  "paidAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date(),
+  "createdTx": zod.string(),
+  "updatedBlock": zod.int()
+}).and(zod.object({
+  "approvers": zod.array(zod.string()).describe('Auditors who approved in the current review round.'),
+  "project": zod.object({
+  "id": zod.int(),
+  "title": zod.string().nullable(),
+  "status": zod.enum(['PENDING_APPROVAL', 'ACTIVE', 'PAUSED', 'COMPLETED', 'CANCELLED']),
+  "wardId": zod.int(),
+  "latE6": zod.int(),
+  "lngE6": zod.int(),
+  "officialAddr": zod.string(),
+  "contractorAddr": zod.string().nullable(),
+  "approvalThreshold": zod.int()
+})
+}))
+export const ListMilestonesResponse = zod.array(ListMilestonesResponseItem)
+
+
+/**
  * @summary Milestones with proof awaiting auditor review
  */
 export const ListPendingMilestonesQueryParams = zod.object({
@@ -887,6 +940,7 @@ export const ListLedgerEventsQueryParams = zod.object({
   "contract": zod.coerce.string().optional(),
   "eventName": zod.coerce.string().optional(),
   "projectId": zod.coerce.number().int().optional(),
+  "txHash": zod.coerce.string().optional(),
   "includePending": zod.coerce.boolean().optional(),
   "limit": zod.coerce.number().int().min(1).max(listLedgerEventsQueryLimitMax).default(listLedgerEventsQueryLimitDefault),
   "offset": zod.coerce.number().int().min(listLedgerEventsQueryOffsetMin).default(listLedgerEventsQueryOffsetDefault)
@@ -922,6 +976,44 @@ export const ListAnomaliesResponseItem = zod.object({
   "resolvedAt": zod.coerce.date().nullable()
 })
 export const ListAnomaliesResponse = zod.array(ListAnomaliesResponseItem)
+
+
+/**
+ * @summary Role holders and ward scopes, indexed from NammaSevaAccess
+ */
+export const ListRoleHoldersResponseItem = zod.object({
+  "address": zod.string(),
+  "roles": zod.array(zod.string()),
+  "wards": zod.array(zod.int()),
+  "allWards": zod.boolean()
+})
+export const ListRoleHoldersResponse = zod.array(ListRoleHoldersResponseItem)
+
+
+/**
+ * @summary Demo cast for the login screen (enabled only with NS_DEMO_MODE; never on mainnet)
+ */
+export const GetDemoConfigResponse = zod.object({
+  "enabled": zod.boolean(),
+  "mnemonic": zod.string().nullable().describe('Burner mnemonic (demo mode only; never a real key).'),
+  "chainId": zod.int(),
+  "accounts": zod.array(zod.object({
+  "key": zod.string(),
+  "index": zod.int().describe('BIP-44 address index under m/44\'/60\'/0\'/0'),
+  "role": zod.enum(['ADMIN', 'GOVT_OFFICIAL', 'AUDITOR', 'CONTRACTOR']),
+  "name": zod.string(),
+  "title": zod.string(),
+  "address": zod.string(),
+  "wards": zod.array(zod.int()),
+  "allWards": zod.boolean()
+})),
+  "citizens": zod.array(zod.object({
+  "key": zod.string(),
+  "name": zod.string(),
+  "area": zod.string(),
+  "phone": zod.string()
+}))
+})
 
 
 /**

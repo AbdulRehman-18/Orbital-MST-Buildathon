@@ -145,6 +145,7 @@ components:
       properties:
         sent: { type: boolean }
         expiresIn: { type: integer }
+        devCode: { type: string, description: "DEMO MODE ONLY — the code, shown on screen so anyone can try the citizen flow." }
       required: [sent, expiresIn]
     OtpVerifyRequest:
       type: object
@@ -566,6 +567,76 @@ components:
             dailyCap: { type: string }
           required: [address, balance, low, spentToday, dailyCap]
       required: [network, chainId, explorerUrl, headBlock, indexedBlock, lagBlocks, indexerUpdatedAt, confirmations, mode, contracts, relayer]
+    DemoAccount:
+      type: object
+      properties:
+        key: { type: string }
+        index: { type: integer, description: "BIP-44 address index under m/44'/60'/0'/0" }
+        role: { type: string, enum: [ADMIN, GOVT_OFFICIAL, AUDITOR, CONTRACTOR] }
+        name: { type: string }
+        title: { type: string }
+        address: { type: string }
+        wards:
+          type: array
+          items: { type: integer }
+        allWards: { type: boolean }
+      required: [key, index, role, name, title, address, wards, allWards]
+    DemoCitizen:
+      type: object
+      properties:
+        key: { type: string }
+        name: { type: string }
+        area: { type: string }
+        phone: { type: string }
+      required: [key, name, area, phone]
+    DemoConfig:
+      type: object
+      properties:
+        enabled: { type: boolean }
+        mnemonic: { type: [string, "null"], description: "Burner mnemonic (demo mode only; never a real key)." }
+        chainId: { type: integer }
+        accounts:
+          type: array
+          items: { $ref: "#/components/schemas/DemoAccount" }
+        citizens:
+          type: array
+          items: { $ref: "#/components/schemas/DemoCitizen" }
+      required: [enabled, mnemonic, chainId, accounts, citizens]
+    RoleHolder:
+      type: object
+      properties:
+        address: { type: string }
+        roles:
+          type: array
+          items: { type: string }
+        wards:
+          type: array
+          items: { type: integer }
+        allWards: { type: boolean }
+      required: [address, roles, wards, allWards]
+    MilestoneWithProject:
+      allOf:
+        - $ref: "#/components/schemas/Milestone"
+        - type: object
+          properties:
+            approvers:
+              type: array
+              description: Auditors who approved in the current review round.
+              items: { type: string }
+            project:
+              type: object
+              properties:
+                id: { type: integer }
+                title: { type: [string, "null"] }
+                status: { $ref: "#/components/schemas/ProjectStatus" }
+                wardId: { type: integer }
+                latE6: { type: integer }
+                lngE6: { type: integer }
+                officialAddr: { type: string }
+                contractorAddr: { type: [string, "null"] }
+                approvalThreshold: { type: integer }
+              required: [id, title, status, wardId, latE6, lngE6, officialAddr, contractorAddr, approvalThreshold]
+          required: [approvers, project]
     Anomaly:
       type: object
       properties:
@@ -880,6 +951,25 @@ paths:
               schema: { $ref: "#/components/schemas/Error" }
 
   # ─── Milestones ────────────────────────────────────────────────────────
+  /milestones:
+    get:
+      operationId: listMilestones
+      tags: [milestones]
+      summary: Milestones with their project and current-round approvers (dashboard queues)
+      parameters:
+        - { name: projectId, in: query, schema: { type: integer } }
+        - { name: status, in: query, schema: { $ref: "#/components/schemas/MilestoneStatus" } }
+        - { name: contractor, in: query, schema: { type: string } }
+        - { name: official, in: query, schema: { type: string } }
+        - { name: wardId, in: query, schema: { type: integer } }
+      responses:
+        "200":
+          description: Milestones
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/MilestoneWithProject" }
   /milestones/pending:
     get:
       operationId: listPendingMilestones
@@ -1133,6 +1223,7 @@ paths:
         - { name: contract, in: query, schema: { type: string } }
         - { name: eventName, in: query, schema: { type: string } }
         - { name: projectId, in: query, schema: { type: integer } }
+        - { name: txHash, in: query, schema: { type: string } }
         - { name: includePending, in: query, schema: { type: boolean } }
         - $ref: "#/components/parameters/Limit"
         - $ref: "#/components/parameters/Offset"
@@ -1157,6 +1248,31 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/Anomaly" }
+
+  /roles:
+    get:
+      operationId: listRoleHolders
+      tags: [chain]
+      summary: Role holders and ward scopes, indexed from NammaSevaAccess
+      responses:
+        "200":
+          description: Role holders
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/RoleHolder" }
+  /demo:
+    get:
+      operationId: getDemoConfig
+      tags: [auth]
+      summary: Demo cast for the login screen (enabled only with NS_DEMO_MODE; never on mainnet)
+      responses:
+        "200":
+          description: Demo configuration
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DemoConfig" }
 
   # ─── Public ────────────────────────────────────────────────────────────
   /public/export.csv:

@@ -23,8 +23,10 @@ export const NETWORK_SETTINGS: Record<string, NetworkSettings> = {
     grievance: { escalationThreshold: 3, maxPerDay: 3, responseSlaSeconds: WEEK },
     confirmations: 1,
   },
+  // Local dev + the web demo mirror the pilot/mainnet: LEDGER mode, amounts in INR paise.
+  // `NS_LOCAL_MODE=ESCROW` switches to native-coin escrow for testing that path.
   localhost: {
-    mode: "ESCROW",
+    mode: process.env.NS_LOCAL_MODE === "ESCROW" ? "ESCROW" : "LEDGER",
     treasury: "deployer",
     grievance: { escalationThreshold: 3, maxPerDay: 3, responseSlaSeconds: WEEK },
     confirmations: 1,

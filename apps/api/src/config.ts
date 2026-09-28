@@ -23,6 +23,8 @@ const Env = z.object({
   NODE_ENV: z.string().default("development"),
   PORT: z.coerce.number().int().positive().default(3001),
   NS_DEMO_MODE: z.string().optional().transform((v) => v === "true"),
+  /** Demo burner accounts (demo mode only). Defaults to Hardhat's public test mnemonic on NS_CHAIN=local. */
+  NS_DEMO_MNEMONIC: optional,
   PUBLIC_BASE_URL: z.string().default("http://localhost:5173"),
   CORS_ORIGINS: z.string().default("http://localhost:5173"),
   TRUST_PROXY: z.coerce.number().int().min(0).default(0),
@@ -61,6 +63,9 @@ const Env = z.object({
 
 export type Config = ReturnType<typeof loadConfig>;
 
+/** Hardhat's well-known development mnemonic — public, worthless outside a local chain. */
+export const HARDHAT_TEST_MNEMONIC = "test test test test test test test test test test test junk";
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
   const e = Env.parse(env);
   const production = e.NODE_ENV === "production";
@@ -86,6 +91,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
     if (e.NS_DEMO_MODE) throw new Error("NS_DEMO_MODE must be off in production.");
     if (e.OTP_PROVIDER === "console") throw new Error("OTP_PROVIDER=console is for development only.");
   }
+  if (e.NS_DEMO_MODE && chainName === "mstMainnet") throw new Error("NS_DEMO_MODE is not allowed on MST mainnet.");
+  const demoMnemonic = e.NS_DEMO_MODE
+    ? (e.NS_DEMO_MNEMONIC ?? (chainName === "local" ? HARDHAT_TEST_MNEMONIC : undefined))
+    : undefined;
   if (e.JWT_SECRET && e.JWT_SECRET.length < 32) throw new Error("JWT_SECRET must be at least 32 characters.");
 
   return {
@@ -93,6 +102,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
     production,
     port: e.PORT,
     demoMode: e.NS_DEMO_MODE,
+    /** Burner-account mnemonic handed to the demo login screen; never set outside demo mode. */
+    demoMnemonic,
     publicBaseUrl: e.PUBLIC_BASE_URL,
     corsOrigins: list(e.CORS_ORIGINS),
     trustProxy: e.TRUST_PROXY,

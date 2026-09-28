@@ -2,6 +2,8 @@ import {
   and,
   asc,
   eq,
+  inArray,
+  milestoneApprovals,
   milestones,
   projects,
   proofMedia,
@@ -10,6 +12,7 @@ import {
 import {
   GetMilestoneParams,
   GetMilestoneProofParams,
+  ListMilestonesQueryParams,
   ListPendingMilestonesQueryParams,
   UploadMilestoneProofParams,
 } from "@namma-seva/api-zod";
@@ -45,6 +48,51 @@ const ProofFields = z.object({
 export default function milestoneRoutes(ctx: AppContext): IRouter {
   const router: IRouter = Router();
   const { db } = ctx;
+
+  /** Dashboard queues: milestones joined with their project and the current round's approvers. */
+  router.get(
+    "/milestones",
+    handler(async (req, res) => {
+      const q = parse(ListMilestonesQueryParams, req.query);
+      const where: SQL[] = [];
+      if (q.projectId !== undefined) where.push(eq(milestones.projectId, q.projectId));
+      if (q.status) where.push(eq(milestones.status, q.status));
+      if (q.contractor) where.push(eq(projects.contractorAddr, q.contractor.toLowerCase()));
+      if (q.official) where.push(eq(projects.officialAddr, q.official.toLowerCase()));
+      if (q.wardId !== undefined) where.push(eq(projects.wardId, q.wardId));
+      const rows = await db
+        .select({ m: milestones, p: projects })
+        .from(milestones)
+        .innerJoin(projects, eq(projects.id, milestones.projectId))
+        .where(where.length ? and(...where) : undefined)
+        .orderBy(asc(milestones.projectId), asc(milestones.id))
+        .limit(500);
+      const ids = rows.map((r) => r.m.id);
+      const approvals = ids.length
+        ? await db
+            .select()
+            .from(milestoneApprovals)
+            .where(inArray(milestoneApprovals.milestoneId, ids))
+        : [];
+      res.json(
+        rows.map(({ m, p }) => ({
+          ...m,
+          approvers: approvals.filter((a) => a.milestoneId === m.id && a.round === m.round).map((a) => a.auditorAddr),
+          project: {
+            id: p.id,
+            title: p.title,
+            status: p.status,
+            wardId: p.wardId,
+            latE6: p.latE6,
+            lngE6: p.lngE6,
+            officialAddr: p.officialAddr,
+            contractorAddr: p.contractorAddr,
+            approvalThreshold: p.approvalThreshold,
+          },
+        })),
+      );
+    }),
+  );
 
   router.get(
     "/milestones/pending",

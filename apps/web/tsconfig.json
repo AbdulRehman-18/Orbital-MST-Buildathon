@@ -1,13 +1,39 @@
 {
   "extends": "../../tsconfig.base.json",
-  "include": ["src", "vite.config.ts"],
+  "include": [
+    "src",
+    "vite.config.ts",
+    "vitest.config.ts",
+    "test"
+  ],
   "compilerOptions": {
     "noEmit": true,
     "jsx": "react-jsx",
-    "lib": ["es2022", "dom", "dom.iterable"],
-    "types": ["node", "vite/client"],
+    "lib": [
+      "es2022",
+      "dom",
+      "dom.iterable"
+    ],
+    "types": [
+      "node",
+      "vite/client"
+    ],
     "baseUrl": ".",
-    "paths": { "@/*": ["./src/*"] }
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    }
   },
-  "references": [{ "path": "../../packages/chain" }, { "path": "../../packages/i18n" }]
+  "references": [
+    {
+      "path": "../../packages/chain"
+    },
+    {
+      "path": "../../packages/i18n"
+    },
+    {
+      "path": "../../packages/api-client"
+    }
+  ]
 }

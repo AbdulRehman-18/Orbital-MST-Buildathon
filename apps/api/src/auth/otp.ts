@@ -90,7 +90,8 @@ export function createOtpSender(cfg: OtpProviderConfig, logger: Logger): OtpSend
 
 const codeHash = (phoneHash: string, code: string) => sha256Hex(`${phoneHash}:${code}`);
 
-export type SendResult = { ok: true } | { ok: false; reason: "rate_limited" };
+/** `code` is returned so demo mode can show it on screen; never expose it otherwise. */
+export type SendResult = { ok: true; code: string } | { ok: false; reason: "rate_limited" };
 
 export async function sendOtp(db: Db, sender: OtpSender, e164: string, phoneHash: string): Promise<SendResult> {
   const now = new Date();
@@ -111,7 +112,7 @@ export async function sendOtp(db: Db, sender: OtpSender, e164: string, phoneHash
     .values({ phoneHash, ...values })
     .onConflictDoUpdate({ target: otpSessions.phoneHash, set: values });
   await sender.send(e164, code);
-  return { ok: true };
+  return { ok: true, code };
 }
 
 export async function verifyOtp(db: Db, phoneHash: string, code: string): Promise<boolean> {
