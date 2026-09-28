@@ -10,11 +10,15 @@ import {
   projects,
   sql,
   chainEvents,
+  auditLog,
   type SQL,
 } from "@namma-seva/db";
 import {
   GetTrackedTxParams,
   ListAnomaliesQueryParams,
+  ExportProjectsJsonQueryParams,
+  ResolveAnomalyBody,
+  ResolveAnomalyParams,
   ListLedgerEventsQueryParams,
   TrackTxBody,
 } from "@namma-seva/api-zod";
@@ -22,6 +26,8 @@ import { txUrl } from "@namma-seva/chain";
 import { Router, type IRouter } from "express";
 import type { AppContext } from "../context";
 import { indexerLag } from "../indexer/indexer";
+import { anomalyView, canSeeAnomalyDetails } from "../anomaly/view";
+import { requireAuth } from "../auth/middleware";
 import { handler, notFound, parse } from "../lib/http";
 
 export default function chainRoutes(ctx: AppContext): IRouter {
@@ -121,14 +127,54 @@ export default function chainRoutes(ctx: AppContext): IRouter {
       if (q.projectId !== undefined) where.push(eq(anomalies.projectId, q.projectId));
       if (q.open === true) where.push(isNull(anomalies.resolvedAt));
       if (q.open === false) where.push(isNotNull(anomalies.resolvedAt));
-      res.json(
-        await db
-          .select()
-          .from(anomalies)
-          .where(where.length ? and(...where) : undefined)
-          .orderBy(desc(anomalies.detectedAt))
-          .limit(500),
-      );
+      // Anonymous callers only learn that a project is under review; details are for reviewers.
+      const detailed = canSeeAnomalyDetails(req);
+      const rows = await db
+        .select()
+        .from(anomalies)
+        .where(where.length ? and(...where) : undefined)
+        .orderBy(desc(anomalies.detectedAt))
+        .limit(500);
+      res.json(rows.map((r) => anomalyView(r, detailed)));
+    }),
+  );
+
+  router.post(
+    "/anomalies/:id/resolve",
+    requireAuth("AUDITOR", "ADMIN"),
+    handler(async (req, res) => {
+      const { id } = parse(ResolveAnomalyParams, req.params);
+      const { note } = parse(ResolveAnomalyBody, req.body);
+      const [row] = await db
+        .update(anomalies)
+        .set({ resolvedAt: new Date(), details: sql`${anomalies.details} || ${JSON.stringify({ resolution: { note, by: req.user!.walletAddress } })}::jsonb` })
+        .where(and(eq(anomalies.id, id), isNull(anomalies.resolvedAt)))
+        .returning();
+      if (!row) throw notFound("Unknown or already resolved anomaly");
+      await db.insert(auditLog).values({
+        actor: req.user!.walletAddress ?? req.user!.id,
+        action: "anomaly.resolve",
+        entity: "anomaly",
+        entityId: id,
+        requestId: req.id ? String(req.id) : null,
+      });
+      res.json(row);
+    }),
+  );
+
+  /** Open-data JSON export, one ward or all (RTI Sec. 4 suo-motu disclosure). */
+  router.get(
+    "/public/export.json",
+    handler(async (req, res) => {
+      const q = parse(ExportProjectsJsonQueryParams, req.query);
+      const rows = await db
+        .select()
+        .from(projects)
+        .where(q.wardId !== undefined ? eq(projects.wardId, q.wardId) : undefined)
+        .orderBy(projects.id);
+      const name = q.wardId !== undefined ? `namma-seva-ward-${q.wardId}.json` : "namma-seva-projects.json";
+      res.setHeader("content-disposition", `attachment; filename="${name}"`);
+      res.json(rows.map((p) => ({ ...p, explorerUrl: txUrl(config.network, p.createdTx) })));
     }),
   );
 

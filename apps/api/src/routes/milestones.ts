@@ -3,7 +3,9 @@ import {
   asc,
   eq,
   inArray,
+  isNotNull,
   milestoneApprovals,
+  ne,
   milestones,
   projects,
   proofMedia,
@@ -24,11 +26,11 @@ import { requireAuth } from "../auth/middleware";
 import type { AppContext } from "../context";
 import { pinJson } from "../ipfs/metadata";
 import { sha256Hex } from "../lib/hash";
+import { allPassed, checkCapture, checkGeofence, checkTime, findDuplicate, geofenceFor, type ProofChecks } from "../proof/checks";
+import { processImage } from "../proof/image";
 import { badRequest, forbidden, handler, notFound, parse } from "../lib/http";
 
 const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]);
-/** Proof photos farther than this from the project site are flagged for auditors (plan §13). */
-export const MAX_GPS_DISTANCE_M = 250;
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -43,6 +45,7 @@ const ProofFields = z.object({
   latE6: z.coerce.number().int().min(-90_000_000).max(90_000_000).optional(),
   lngE6: z.coerce.number().int().min(-180_000_000).max(180_000_000).optional(),
   note: z.string().max(1000).optional(),
+  source: z.enum(["camera", "gallery"]).optional(),
 });
 
 export default function milestoneRoutes(ctx: AppContext): IRouter {
@@ -159,27 +162,52 @@ export default function milestoneRoutes(ctx: AppContext): IRouter {
       }
 
       const site = { lat: p.latE6 / 1e6, lng: p.lngE6 / 1e6 };
+      const limitM = geofenceFor(p.category);
+      const uploadedAt = new Date();
+      const others = await db
+        .select({ milestoneId: proofMedia.milestoneId, phash: proofMedia.phash })
+        .from(proofMedia)
+        .where(and(isNotNull(proofMedia.phash), ne(proofMedia.milestoneId, id)));
       const warnings: string[] = [];
       const media = [];
       for (const file of files) {
-        const sha256 = sha256Hex(file.buffer);
+        // EXIF is read from the untouched upload; the pinned image is re-encoded without it.
         const exif = await readExif(file.buffer);
+        let processed;
+        try {
+          processed = await processImage(file.buffer);
+        } catch {
+          throw badRequest(`${file.originalname}: not a readable image`);
+        }
+        const sha256 = sha256Hex(processed.image);
         const distance = exif.lat !== null && exif.lng !== null ? haversineM(site, { lat: exif.lat, lng: exif.lng }) : null;
-        const flagged = distance === null || distance > MAX_GPS_DISTANCE_M;
-        if (distance === null) warnings.push(`${file.originalname}: no EXIF GPS`);
-        else if (distance > MAX_GPS_DISTANCE_M) warnings.push(`${file.originalname}: taken ${Math.round(distance)} m from the site`);
-        const cid = await ctx.ipfs.pin(file.buffer, `proof-${id}-${sha256.slice(2, 14)}`, file.mimetype);
+        const dup = findDuplicate(processed.phash, others);
+        const checks: ProofChecks = {
+          capture: checkCapture({ strict: ctx.config.proofStrict, source: fields.source, hasExifTime: exif.time !== null }),
+          geofence: checkGeofence(distance, limitM),
+          time: checkTime(exif.time, uploadedAt, m.createdAt),
+          duplicate: dup
+            ? { ok: false, detail: `Matches a photo on milestone #${dup.match.milestoneId}` }
+            : { ok: true },
+        };
+        for (const [name, r] of Object.entries(checks)) if (!r.ok) warnings.push(`${file.originalname}: ${name} — ${r.detail}`);
+        const base = `proof-${id}-${sha256.slice(2, 14)}`;
+        const cid = await ctx.ipfs.pin(processed.image, `${base}.jpg`, "image/jpeg");
+        const thumbCid = await ctx.ipfs.pin(processed.thumbnail, `${base}-thumb.jpg`, "image/jpeg");
         media.push({
           cid,
+          thumbCid,
           sha256,
-          mime: file.mimetype,
-          width: exif.width,
-          height: exif.height,
+          mime: "image/jpeg",
+          width: processed.width,
+          height: processed.height,
           exifLat: exif.lat,
           exifLng: exif.lng,
           exifTime: exif.time,
           gpsDistanceM: distance,
-          flagged,
+          phash: processed.phash,
+          checks,
+          flagged: !allPassed(checks),
         });
       }
 
@@ -204,7 +232,16 @@ export default function milestoneRoutes(ctx: AppContext): IRouter {
           latE6,
           lngE6,
           note: fields.note,
-          media: media.map((x) => ({ cid: x.cid, sha256: x.sha256, mime: x.mime, exifTime: x.exifTime?.toISOString() ?? null })),
+          capturedAt: media.find((x) => x.exifTime)?.exifTime?.toISOString() ?? null,
+          images: media.map((x) => ({
+            cid: x.cid,
+            thumbCid: x.thumbCid,
+            sha256: x.sha256,
+            mime: x.mime,
+            phash: x.phash,
+            exifTime: x.exifTime?.toISOString() ?? null,
+            checks: x.checks,
+          })),
         },
         req.user!.walletAddress,
       );
@@ -235,6 +272,8 @@ function publicMedia(x: {
   exifTime: Date | null;
   gpsDistanceM: number | null;
   flagged: boolean;
+  thumbCid: string | null;
+  checks: Record<string, { ok: boolean; detail?: string }> | null;
 }) {
   return {
     cid: x.cid,
@@ -245,6 +284,8 @@ function publicMedia(x: {
     exifTime: x.exifTime,
     gpsDistanceM: x.gpsDistanceM,
     flagged: x.flagged,
+    thumbCid: x.thumbCid,
+    checks: x.checks,
   };
 }
 
