@@ -1,0 +1,20 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.vite/
+coverage/
+
+# env & secrets — never commit
+.env
+.env.*
+!.env.example
+
+# hardhat
+packages/contracts/artifacts/
+packages/contracts/cache/
+packages/contracts/typechain-types/
+packages/chain/deployments/localhost.json
+packages/chain/deployments/hardhat.json
+
+.DS_Store
+*.log

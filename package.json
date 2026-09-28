@@ -1,0 +1,25 @@
+{
+  "name": "namma-seva",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "dev": "pnpm --parallel --filter @namma-seva/api --filter @namma-seva/web run dev",
+    "build": "pnpm run typecheck && pnpm -r --if-present run build",
+    "typecheck:libs": "tsc --build",
+    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./apps/**\" --if-present run typecheck",
+    "format": "prettier --write .",
+    "infra:up": "docker compose -f infra/compose/docker-compose.dev.yml up -d",
+    "infra:down": "docker compose -f infra/compose/docker-compose.dev.yml down",
+    "i18n:check": "pnpm --filter @namma-seva/i18n check"
+  },
+  "devDependencies": {
+    "prettier": "^3.8.1",
+    "typescript": "~5.9.2"
+  }
+}
