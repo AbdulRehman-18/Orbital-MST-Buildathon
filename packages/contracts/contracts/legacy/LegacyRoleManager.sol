@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: MIT
+// UNCHANGED DecentraliTrack source (only contract names prefixed "Legacy"), compiled solely so
+// test/AuditFindings.test.ts can demonstrate each plan §3.2 defect against the original code.
+// Never deploy.
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
-contract RoleManager is AccessControl {
+contract LegacyRoleManager is AccessControl {
     bytes32 public constant ADMIN = keccak256("ADMIN");
     bytes32 public constant GOVT_OFFICIAL = keccak256("GOVT_OFFICIAL");
     bytes32 public constant CONTRACTOR = keccak256("CONTRACTOR");

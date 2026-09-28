@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: MIT
+// UNCHANGED DecentraliTrack source (only contract names prefixed "Legacy"), compiled solely so
+// test/AuditFindings.test.ts can demonstrate each plan §3.2 defect against the original code.
+// Never deploy.
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "./ProjectRegistry.sol";
-import "./RoleManager.sol";
+import "./LegacyProjectRegistry.sol";
+import "./LegacyRoleManager.sol";
 
-contract MilestoneEscrow is ReentrancyGuard {
+contract LegacyMilestoneEscrow is ReentrancyGuard {
     enum MilestoneStatus {
         PENDING,
         PROOF_SUBMITTED,
@@ -50,8 +53,8 @@ contract MilestoneEscrow is ReentrancyGuard {
         string rejectionReason;
     }
 
-    ProjectRegistry public immutable projectRegistry;
-    RoleManager public immutable roleManager;
+    LegacyProjectRegistry public immutable projectRegistry;
+    LegacyRoleManager public immutable roleManager;
     uint256 public constant APPROVAL_THRESHOLD = 1;
     uint256 private nextMilestoneId = 1;
     mapping(uint256 => Milestone) private milestones;
@@ -78,8 +81,8 @@ contract MilestoneEscrow is ReentrancyGuard {
     constructor(address projectRegistryAddress, address roleManagerAddress) {
         require(projectRegistryAddress != address(0), "Project registry required");
         require(roleManagerAddress != address(0), "Role manager required");
-        projectRegistry = ProjectRegistry(projectRegistryAddress);
-        roleManager = RoleManager(roleManagerAddress);
+        projectRegistry = LegacyProjectRegistry(projectRegistryAddress);
+        roleManager = LegacyRoleManager(roleManagerAddress);
     }
 
     receive() external payable {}
@@ -169,7 +172,7 @@ contract MilestoneEscrow is ReentrancyGuard {
         require(milestone.approvalCount >= APPROVAL_THRESHOLD, "Threshold not met");
         require(projectEscrowBalance[milestone.projectId] >= milestone.paymentAmount, "Escrow insufficient");
 
-        ProjectRegistry.Project memory project = projectRegistry.getProject(milestone.projectId);
+        LegacyProjectRegistry.Project memory project = projectRegistry.getProject(milestone.projectId);
         projectEscrowBalance[milestone.projectId] -= milestone.paymentAmount;
         milestone.status = MilestoneStatus.PAID;
         projectRegistry.addSpentAmount(milestone.projectId, milestone.paymentAmount);

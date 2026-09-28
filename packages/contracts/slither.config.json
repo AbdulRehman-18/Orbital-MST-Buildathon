@@ -1,0 +1,7 @@
+{
+  "filter_paths": "node_modules|@openzeppelin|contracts/legacy|contracts/mocks|test/",
+  "exclude_informational": true,
+  "exclude_optimization": true,
+  "detectors_to_exclude": "timestamp",
+  "compile_force_framework": "solc"
+}

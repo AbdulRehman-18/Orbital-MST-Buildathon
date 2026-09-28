@@ -15,7 +15,7 @@ await rm(outdir, { recursive: true, force: true });
 await build({
   entryPoints: [path.resolve(dir, "src/index.ts")],
   platform: "node",
-  target: "node20",
+  target: "node22",
   bundle: true,
   format: "esm",
   outdir,
