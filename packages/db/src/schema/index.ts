@@ -1,3 +1,6 @@
-// Namma Seva read model. Tables are defined in Phase 3 (docs/phases/PHASE_3_BACKEND.md §1),
-// one file per table, each re-exported from here.
-export {};
+// Namma Seva read model (plan §12). Projections are written only by the indexer; `app` tables
+// hold off-chain-only data.
+export * from "./reference";
+export * from "./projections";
+export * from "./indexer";
+export * from "./app";

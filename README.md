@@ -29,11 +29,12 @@ Public project data is often fragmented, delayed, or hard to verify. Namma Seva 
 
 ## Status
 
-**Phase 2 of 6 — Smart contracts v2** (engineering complete; MST testnet deploy pending).
+**Phase 3 of 6 — Data layer, indexer & API** (engineering complete against a local chain; MST testnet run pending the testnet deploy).
 
 - ✅ Phase 1: monorepo, shadcn web shell, API shell, MST chain package, ADRs
 - ✅ Phase 2: 6 contracts + multisig/timelock, 109 tests, audit regressions, Slither clean — see [packages/contracts](packages/contracts/README.md)
-- 🟨 Next: deploy to MST testnet ([runbook](docs/runbooks/deploy-mst-testnet.md)), then Phase 3 — indexer & API
+- ✅ Phase 3: Postgres read model, reorg-safe indexer, SIWE + phone OTP, gasless relayer, OpenAPI v0.3 — see the [backend runbook](docs/runbooks/backend-local.md) and [ADR 0010](docs/adr/0010-backend-indexer-relayer.md)
+- 🟨 Next: deploy to MST testnet ([runbook](docs/runbooks/deploy-mst-testnet.md)), then Phase 4 — web app on live data
 - 🎯 Target: production-ready pilot after the hardening and audit phase
 
 ## Delivery roadmap
@@ -74,7 +75,7 @@ apps/
 packages/
   chain/          MST network config, explorer links, ABIs + deployments (Phase 2)
   i18n/           English, ಕನ್ನಡ, தமிழ், हिन्दी strings
-  db/             Drizzle schema + migrations (Phase 3)
+  db/             Drizzle schema, migrations, seeds (read model)
   api-spec/       OpenAPI spec (contract-first) + Orval codegen
   api-zod/        Generated zod schemas
   api-client/     Generated React Query client
@@ -119,7 +120,7 @@ pnpm dev
 - Web: http://localhost:5173
 - API health: http://localhost:3001/api/health
 
-Local Postgres + Redis (needed from Phase 3):
+Local Postgres + Redis (needed for the API; full walkthrough in the [backend runbook](docs/runbooks/backend-local.md)):
 
 ```bash
 pnpm infra:up
@@ -135,6 +136,10 @@ pnpm infra:up
 | `pnpm --filter @namma-seva/web ui:add <name>` | Add a shadcn/ui component |
 | `pnpm i18n:check` | Fail if any language is missing a string |
 | `pnpm test:contracts` | Contract tests (TypeScript + Solidity fuzz/invariant) |
+| `pnpm test:api` | API + indexer tests (PGlite; chain e2e when a local node is up) |
+| `pnpm db:migrate` / `pnpm db:seed` | Apply migrations / seed BBMP wards + departments |
+| `pnpm indexer` | Run the chain indexer (separate process) |
+| `pnpm chain:node` | Local Hardhat chain for development |
 | `pnpm --filter @namma-seva/api-spec codegen` | Regenerate zod + client from OpenAPI |
 
 ### Adding UI components
@@ -159,7 +164,8 @@ Contributions should follow the [phase plan](docs/phases/README.md) and its Defi
 
 - `.env` is git-ignored — never commit keys.
 - There are **no server-held role keys**. Officials, auditors and contractors sign their own
-  transactions; the only server key is the relayer for gasless citizen actions (Phase 3).
+  transactions; the only server key is the relayer for gasless citizen actions. The API refuses to
+  boot with any legacy `PRIVKEY_*` variable set.
 
 ## References
 

@@ -611,16 +611,6 @@ export const grievanceRegistryAbi = [
             "internalType": "uint64",
             "name": "respondedAt",
             "type": "uint64"
-          },
-          {
-            "internalType": "string",
-            "name": "cid",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "responseCID",
-            "type": "string"
           }
         ],
         "internalType": "struct GrievanceRegistry.Grievance",
