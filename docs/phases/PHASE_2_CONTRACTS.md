@@ -1,5 +1,7 @@
 # Phase 2 — Smart Contracts v2 on MST Testnet
 
+> **Status (2026-09-28):** ✅ contracts, tests, tooling and local end-to-end run complete. Remaining: **(You)** deploy + verify + smoke on MST testnet with a funded deployer key — see [runbook](../runbooks/deploy-mst-testnet.md).
+
 **Duration:** Weeks 2–3 · **Depends on:** Phase 1 · **Plan refs:** §3.2, §7, §8, §16.1
 
 ## Goal
@@ -7,9 +9,9 @@ Rewrite the DecentraliTrack contracts with every audit defect fixed, add grievan
 
 ## 1. Hardhat project (`packages/contracts`)
 Port from `DecentraliTrack/decentralitrack/contracts`:
-- [ ] `hardhat.config.js` → `hardhat.config.ts` (plan §8.1): Solidity `0.8.24`, optimizer 200, `viaIR`, `evmVersion: "shanghai"` (ADR 0003 — mainnet lacks Cancun), networks `hardhat` / `mstTestnet` / `mstMainnet`, Blockscout `customChains`.
-- [ ] Plugins: `hardhat-toolbox`, `@openzeppelin/hardhat-upgrades`, `hardhat-gas-reporter`, `solidity-coverage`.
-- [ ] Scripts per §8.2 (`compile`, `test`, `coverage`, `deploy:*`, `verify:*`, `roles:*`, `export-abis`).
+- [x] `hardhat.config.js` → `hardhat.config.ts` (plan §8.1): Solidity `0.8.24`, optimizer 200, `viaIR`, `evmVersion: "shanghai"` (ADR 0003 — mainnet lacks Cancun), networks `hardhat` (pinned to Shanghai) / `localhost` / `mstTestnet` / `mstMainnet`, Blockscout `chainDescriptors`. *Hardhat 3 on Node 22 (ADR 0008).*
+- [x] Plugins: hardhat-ethers, chai-matchers, mocha, network-helpers, typechain, verify, `@openzeppelin/hardhat-upgrades`. *Coverage and gas stats are built into Hardhat 3.*
+- [x] Scripts per §8.2 (`compile`, `test`, `coverage`, `deploy:*`, `verify:*`, `roles:*`, `export-abis`).
 
 ## 2. Contracts
 | Contract | Source | Must fix / add |
@@ -21,27 +23,27 @@ Port from `DecentraliTrack/decentralitrack/contracts`:
 | `TenderRegistry` | new | publish, sealed-bid commit/reveal, `award` → `assignContractor` |
 | `TrustedForwarder` | OZ `ERC2771Forwarder` | gasless citizen actions |
 
-- [ ] OpenZeppelin v5, custom errors, NatSpec on every external fn, `ReentrancyGuard` on value-moving fns.
-- [ ] Every event carries `indexed projectId` (+ `indexed actor`) and the CID/hash so the indexer never needs an extra `eth_call`.
-- [ ] State machines exactly as §7.2 (project + milestone).
-- [ ] UUPS proxies for Registry / Escrow / Grievance / Tender; `upgradeTo` gated by ADMIN → `NammaSevaMultisig` + 48 h `TimelockController` (no Safe on MST — ADR 0006).
+- [x] OpenZeppelin v5 (**pinned 5.4.0** — 5.5+ uses Cancun `mcopy`, ADR 0008), custom errors, NatSpec, `ReentrancyGuard` on value-moving fns.
+- [x] Every event carries `indexed projectId` (+ `indexed actor`) and the CID/hash. *CIDs live in events only; storage keeps content hashes (ADR 0009).*
+- [x] State machines exactly as §7.2 (project + milestone).
+- [x] UUPS proxies for Registry / Escrow / Grievance / Tender; `upgradeTo` gated by ADMIN → `NammaSevaMultisig` + 48 h `TimelockController` (no Safe on MST — ADR 0006).
 
 ## 3. Tests
-- [ ] `test/DecentraliTrack.test.js` → `test/NammaSeva.test.ts`.
-- [ ] One **regression test per §3.2 defect** that would fail on the old contracts.
-- [ ] Every function, revert, event and role check; ≥ 95 % line coverage, 100 % state transitions.
-- [ ] Foundry invariants: `sum(paid) ≤ sum(funded)`, `spent == sum(paid milestones)`, `allocated ≤ escrowBalance`.
-- [ ] Upgrade storage-layout validation via `hardhat-upgrades`.
-- [ ] Gas snapshot vs §7.6 targets (`createProject` < 180k, `submitProof` < 110k, …).
-- [ ] Slither + Aderyn clean (no High).
+- [x] `test/DecentraliTrack.test.js` → per-contract TS suites (100 tests).
+- [x] One **regression test per §3.2 defect** — `AuditFindings.test.ts` runs each exploit against the unchanged legacy contracts (succeeds) and v2 (blocked).
+- [x] Every function, revert, event and role check; **100 % lines** on Access/Registry/Escrow/Tender/Multisig, 98.6 % Grievance (unreachable ERC-2771 `_msgData` override).
+- [x] Invariants (Foundry-style Solidity tests run by Hardhat 3): funds conserved, `sum(paid) ≤ sum(funded)`, `spent == sum(paid milestones)`, `allocated ≤ escrowBalance`, escrow solvent, unsettled count — probe-verified to reach releases.
+- [x] Upgrade storage-layout validation via `hardhat-upgrades` (every proxy deploy/upgrade in tests + scripts).
+- [x] Gas snapshot vs §7.6 targets — `createProject` meets it; others 102–158k after optimisation (≤ 0.00016 MSTC). Gaps accepted, see ADR 0009.
+- [x] Slither: 0 findings. Aderyn: 4 "High" all triaged as false positives — [triage](../security/phase-2-static-analysis.md).
 
 ## 4. Deploy to MST testnet
-- [ ] `scripts/deploy.ts`: `Access → Forwarder → Registry(proxy) → Escrow(proxy) → Grievance(proxy) → Tender(proxy)`, then `registry.setEscrow`, `tender.setRegistry`.
-- [ ] Writes `deployments/mstTestnet.json` (`chainId`, `blockNumber` = indexer start block, git `commit`, addresses).
-- [ ] `scripts/grantRoles.ts` reads `config/roles.mstTestnet.json` — **no hard-coded Hardhat accounts** (L-1).
-- [ ] `scripts/verify.ts` verifies implementations + proxies on testnet.mstscan.com.
-- [ ] `scripts/exportAbis.ts` → `packages/chain/abis` + `deployments` + typed contract helpers (replaces `findArtifactsBase()` and duplicated ABI JSON).
-- [ ] `scripts/smokeTest.ts` (from `verifyOnChain.js`): runs the §5.2 happy path and prints mstscan links.
+- [x] `scripts/deploy.ts`: `Access → Forwarder → Registry(proxy) → Escrow(proxy) → Grievance(proxy) → Tender(proxy)`, then registry wiring; optional multisig + timelock.
+- [x] Writes `deployments/<network>.json` (`chainId`, `blockNumber` = indexer start block, git `commit`, addresses).
+- [x] `scripts/grantRoles.ts` reads `config/roles.mstTestnet.json` — **no hard-coded Hardhat accounts** (L-1).
+- [x] `scripts/verify.ts` verifies implementations + plain contracts on mstscan (Blockscout). *Not yet run against the live explorer.*
+- [x] `scripts/exportAbis.ts` → `packages/chain/src/abis/*.ts` (`as const`) + `src/deployments.ts` (replaces `findArtifactsBase()` and duplicated ABI JSON).
+- [x] `scripts/smokeTest.ts`: runs the §5.2 happy path and prints mstscan links — passes on a local Shanghai node.
 
 ## Deliverables
 - 6 contracts, deployed + verified on MST testnet.
@@ -49,5 +51,5 @@ Port from `DecentraliTrack/decentralitrack/contracts`:
 - Smoke-test transcript with mstscan links (use in the demo).
 
 ## Exit criteria
-- [ ] Full lifecycle (create → 2-of-3 approve → fund → milestone → proof → 2 approvals → release → grievance) executed on MST testnet and visible on testnet.mstscan.com.
-- [ ] Coverage ≥ 95 %, Slither clean, all §3.2 regression tests green.
+- [ ] **(You)** Full lifecycle executed on MST testnet and visible on testnet.mstscan.com — `pnpm smoke:mst-testnet` (✅ passes locally).
+- [x] Coverage ≥ 95 %, Slither clean, all §3.2 regression tests green.

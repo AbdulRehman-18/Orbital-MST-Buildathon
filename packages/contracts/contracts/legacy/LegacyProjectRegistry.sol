@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: MIT
+// UNCHANGED DecentraliTrack source (only contract names prefixed "Legacy"), compiled solely so
+// test/AuditFindings.test.ts can demonstrate each plan §3.2 defect against the original code.
+// Never deploy.
 pragma solidity ^0.8.20;
 
-import "./RoleManager.sol";
+import "./LegacyRoleManager.sol";
 
-contract ProjectRegistry {
+contract LegacyProjectRegistry {
     enum ProjectStatus {
         PENDING_APPROVAL,
         CREATED,
@@ -41,7 +44,7 @@ contract ProjectRegistry {
         ProjectCategory category;
     }
 
-    RoleManager public immutable roleManager;
+    LegacyRoleManager public immutable roleManager;
     uint256 private nextProjectId = 1;
     uint256[] private projectIds;
     mapping(uint256 => Project) private projects;
@@ -69,7 +72,7 @@ contract ProjectRegistry {
 
     constructor(address roleManagerAddress) {
         require(roleManagerAddress != address(0), "Role manager required");
-        roleManager = RoleManager(roleManagerAddress);
+        roleManager = LegacyRoleManager(roleManagerAddress);
     }
 
     // Official creates a project — starts as PENDING_APPROVAL, contractor can be zero (tender flow)

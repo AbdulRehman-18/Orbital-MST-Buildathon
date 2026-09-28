@@ -12,6 +12,8 @@ Format: Context → Decision → Consequences, plus the evidence behind it.
 | [0005](0005-gas-pricing.md) | Gas pricing | Accepted |
 | [0006](0006-no-standard-infra-contracts.md) | No Safe / Multicall3 / EntryPoint on MST | Accepted |
 | [0007](0007-contract-verification-blockscout.md) | Contract verification via Blockscout | Accepted |
+| [0008](0008-openzeppelin-5-4-and-toolchain.md) | OpenZeppelin 5.4.0 pinned; Hardhat 3 on Node 22 | Accepted |
+| [0009](0009-cids-in-events.md) | IPFS CIDs in events, content hashes in storage | Accepted |
 
 ## Plan §21 open questions — status
 

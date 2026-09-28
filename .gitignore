@@ -12,9 +12,11 @@ coverage/
 # hardhat
 packages/contracts/artifacts/
 packages/contracts/cache/
-packages/contracts/typechain-types/
+packages/contracts/types/
 packages/chain/deployments/localhost.json
 packages/chain/deployments/hardhat.json
+packages/contracts/deployments/localhost.json
+packages/contracts/deployments/hardhat.json
 
 .DS_Store
 *.log

@@ -1,0 +1,11 @@
+{
+  "$comment": "Copy to roles.<network>.json. Wards are ward ids (e.g. BBMP ward numbers) or \"ALL\".",
+  "GOVT_OFFICIAL": [{ "address": "0x0000000000000000000000000000000000000001", "wards": [42] }],
+  "AUDITOR": [
+    { "address": "0x0000000000000000000000000000000000000002", "wards": [42] },
+    { "address": "0x0000000000000000000000000000000000000003", "wards": [42] },
+    { "address": "0x0000000000000000000000000000000000000004", "wards": ["ALL"] }
+  ],
+  "CONTRACTOR": [{ "address": "0x0000000000000000000000000000000000000005" }],
+  "RELAYER": [{ "address": "0x0000000000000000000000000000000000000006" }]
+}

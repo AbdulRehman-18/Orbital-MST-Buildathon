@@ -1,0 +1,7 @@
+{
+  "$comment": "Fill with the team's MST testnet wallets (plan §8.3 step 2), then run `pnpm --filter @namma-seva/contracts roles:mst-testnet`.",
+  "GOVT_OFFICIAL": [],
+  "AUDITOR": [],
+  "CONTRACTOR": [],
+  "RELAYER": []
+}

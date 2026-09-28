@@ -5,7 +5,7 @@
   "license": "MIT",
   "packageManager": "pnpm@10.33.0",
   "engines": {
-    "node": ">=20"
+    "node": ">=22.13"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
@@ -16,7 +16,8 @@
     "format": "prettier --write .",
     "infra:up": "docker compose -f infra/compose/docker-compose.dev.yml up -d",
     "infra:down": "docker compose -f infra/compose/docker-compose.dev.yml down",
-    "i18n:check": "pnpm --filter @namma-seva/i18n check"
+    "i18n:check": "pnpm --filter @namma-seva/i18n check",
+    "test:contracts": "pnpm --filter @namma-seva/contracts test"
   },
   "devDependencies": {
     "prettier": "^3.8.1",

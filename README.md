@@ -29,11 +29,11 @@ Public project data is often fragmented, delayed, or hard to verify. Namma Seva 
 
 ## Status
 
-**Phase 1 of 6 — Foundation & Rebrand** (engineering complete).
+**Phase 2 of 6 — Smart contracts v2** (engineering complete; MST testnet deploy pending).
 
-- ✅ Planning artifacts completed
-- ✅ Monorepo, shadcn web shell, API shell, MST chain package, ADRs
-- 🟨 Next: Phase 2 — smart contracts v2 on MST testnet
+- ✅ Phase 1: monorepo, shadcn web shell, API shell, MST chain package, ADRs
+- ✅ Phase 2: 6 contracts + multisig/timelock, 109 tests, audit regressions, Slither clean — see [packages/contracts](packages/contracts/README.md)
+- 🟨 Next: deploy to MST testnet ([runbook](docs/runbooks/deploy-mst-testnet.md)), then Phase 3 — indexer & API
 - 🎯 Target: production-ready pilot after the hardening and audit phase
 
 ## Delivery roadmap
@@ -102,7 +102,7 @@ Contracts compile for `evmVersion: "shanghai"`: MST mainnet does not support Can
 
 ## Getting started
 
-Requires Node 20+ and pnpm 10.
+Requires Node 22.13+ (`nvm use` reads `.nvmrc`) and pnpm 10.
 
 ```bash
 pnpm install
@@ -134,6 +134,7 @@ pnpm infra:up
 | `pnpm build` | Type-check, then build API bundle and web assets |
 | `pnpm --filter @namma-seva/web ui:add <name>` | Add a shadcn/ui component |
 | `pnpm i18n:check` | Fail if any language is missing a string |
+| `pnpm test:contracts` | Contract tests (TypeScript + Solidity fuzz/invariant) |
 | `pnpm --filter @namma-seva/api-spec codegen` | Regenerate zod + client from OpenAPI |
 
 ### Adding UI components
