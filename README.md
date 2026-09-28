@@ -1,20 +1,69 @@
-# Namma Seva
+# Namma Seva (Orbital MST Buildathon)
 
 > **ನಮ್ಮ ಸೇವೆ · நம்ம சேவை · नम्मा सेवा — "Our Service"**
 > Every rupee, on-chain. Every citizen, informed.
 
 Namma Seva lets citizens see, verify and question how public money is spent on local
-infrastructure — roads, drains, water supply, street lights. Every project, milestone, proof
-photo, approval and payment is anchored on **MST Blockchain**, so records can't be silently
-edited or deleted. Citizens don't need a crypto wallet; officials, auditors and contractors sign
-with their own.
+infrastructure — roads, drains, water supply, street lights, parks and civic facilities. Every
+project, milestone, proof photo, approval and payment is anchored on **MST Blockchain**, so
+records can't be silently edited or deleted. Citizens don't need a crypto wallet; officials,
+auditors and contractors sign with their own.
 
 Built for the Orbital MST Buildathon, evolving the DecentraliTrack MVP (Polygon Amoy) onto MST.
 
+## Why this project matters
+
+Public project data is often fragmented, delayed, or hard to verify. Namma Seva aims to solve this by:
+
+- Recording key project lifecycle actions as immutable blockchain transactions.
+- Making project verification citizen-friendly and multilingual.
+- Strengthening trust through auditable approvals, milestone proofs, and transparent fund-release workflows.
+
+## Core goals
+
+- Move the platform from Polygon Amoy to **MST testnet/mainnet**.
+- Rebrand and localize as **Namma Seva** (Kannada, Tamil, Hindi, English).
+- Harden smart contracts and remove centralized key custody risks.
+- Build a production-grade backend/indexer where the chain is the source of truth.
+- Add grievance, tender, anomaly-detection, and compliance capabilities.
+
 ## Status
 
-**Phase 1 of 6 — Foundation & Rebrand.** See [docs/phases](docs/phases/README.md) for the roadmap
-and [docs/NAMMA_SEVA_IMPLEMENTATION_PLAN.md](docs/NAMMA_SEVA_IMPLEMENTATION_PLAN.md) for the full plan.
+**Phase 1 of 6 — Foundation & Rebrand** (engineering complete).
+
+- ✅ Planning artifacts completed
+- ✅ Monorepo, shadcn web shell, API shell, MST chain package, ADRs
+- 🟨 Next: Phase 2 — smart contracts v2 on MST testnet
+- 🎯 Target: production-ready pilot after the hardening and audit phase
+
+## Delivery roadmap
+
+The implementation is organized into 6 delivery phases over ~10 weeks
+([overview](docs/phases/README.md), [full plan](docs/NAMMA_SEVA_IMPLEMENTATION_PLAN.md)):
+
+1. [Foundation & rebrand](docs/phases/PHASE_1_FOUNDATION.md)
+2. [Smart contracts v2 on MST testnet](docs/phases/PHASE_2_CONTRACTS.md)
+3. [Data layer, indexer, and API](docs/phases/PHASE_3_BACKEND.md)
+4. [Web app, wallets, and i18n](docs/phases/PHASE_4_WEB.md)
+5. [Citizen features, integrity checks, anomaly v2](docs/phases/PHASE_5_FEATURES.md)
+6. [Hardening, DevOps, audit, and pilot](docs/phases/PHASE_6_HARDENING.md)
+
+### Buildathon focus
+
+The key near-term checkpoint is a **testnet demo** (end of Phase 2) with a complete lifecycle
+visible on the MST explorer:
+
+- Project creation and approval
+- Milestone creation and proof submission
+- Multi-auditor approval
+- Fund release event traceability
+
+## Target architecture (high level)
+
+- **Clients:** Citizen PWA + role-based web dashboards
+- **Backend:** Express + TypeScript API, SIWE/OTP auth, relayer, indexer, anomaly engine
+- **Data:** PostgreSQL (Drizzle), Redis, IPFS/Pinata
+- **Blockchain:** MST EVM contracts for access, registry, escrow, grievances, tenders
 
 ## Repository layout
 
@@ -96,11 +145,26 @@ components through the wrapper, which also fixes a bad `cn` import in the upstre
 pnpm --filter @namma-seva/web ui:add <component>
 ```
 
+## Contributing
+
+Contributions should follow the [phase plan](docs/phases/README.md) and its Definition of Done, and prioritize:
+
+- Security-first contract and backend changes
+- Deterministic indexing and observability
+- Accessibility and multilingual UX
+- Test coverage and verification evidence
+
 ## Security
 
 - `.env` is git-ignored — never commit keys.
 - There are **no server-held role keys**. Officials, auditors and contractors sign their own
   transactions; the only server key is the relayer for gasless citizen actions (Phase 3).
+
+## References
+
+- MST developer docs: https://docs.mstblockchain.com/developer-docs
+- Main implementation plan: [docs/NAMMA_SEVA_IMPLEMENTATION_PLAN.md](docs/NAMMA_SEVA_IMPLEMENTATION_PLAN.md)
+- Architecture decisions: [docs/adr](docs/adr/README.md)
 
 ## License
 
