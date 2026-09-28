@@ -2,711 +2,1173 @@ openapi: 3.1.0
 info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
-  version: 0.1.0
-  description: Namma Seva API — Phase 1 carries over the DecentraliTrack surface; Phase 3 rewrites it for MST (see docs/phases/PHASE_3_BACKEND.md)
+  version: 0.3.0
+  description: |
+    Namma Seva API (Phase 3). The chain is the source of truth; this API serves the indexed
+    Postgres read model, pins metadata to IPFS for wallets to sign, authenticates wallets (SIWE)
+    and citizens (phone OTP), and relays gasless citizen grievances through the ERC-2771 forwarder.
+    Officials, auditors and contractors sign privileged transactions in their own wallets — there
+    are no server-signed approve / reject / release routes.
+
+    Amounts are decimal strings in the escrow's accounting unit (INR paise in LEDGER mode, wei in
+    ESCROW mode). Coordinates are micro-degrees (`latE6`, `lngE6`).
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
   - name: auth
-    description: Wallet authentication
+  - name: reference
   - name: projects
-    description: Public infrastructure projects
   - name: milestones
-    description: Milestone escrow workflows
-  - name: analytics
-    description: Accountability analytics
+  - name: grievances
+  - name: tenders
+  - name: chain
+  - name: public
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+    Offset:
+      name: offset
+      in: query
+      schema: { type: integer, minimum: 0, default: 0 }
+  schemas:
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+        message: { type: string }
+        details: {}
+      required: [error]
+    Address:
+      type: string
+      pattern: "^0x[0-9a-fA-F]{40}$"
+    Bytes32:
+      type: string
+      pattern: "^0x[0-9a-fA-F]{64}$"
+    TxHash:
+      type: string
+      pattern: "^0x[0-9a-fA-F]{64}$"
+    Amount:
+      type: string
+      pattern: "^[0-9]+$"
+      description: Non-negative integer as a decimal string.
+    HealthStatus:
+      type: object
+      properties:
+        status: { type: string, enum: [ok] }
+        service: { type: string }
+        startedAt: { type: string }
+        demoMode: { type: boolean }
+        chain:
+          type: object
+          properties:
+            name: { type: string }
+            chainId: { type: integer }
+          required: [name, chainId]
+      required: [status, service, startedAt, demoMode, chain]
+    ReadyCheck:
+      type: object
+      properties:
+        ok: { type: boolean }
+        detail: { type: string }
+      required: [ok]
+    ReadyStatus:
+      type: object
+      properties:
+        ready: { type: boolean }
+        checks:
+          type: object
+          properties:
+            database: { $ref: "#/components/schemas/ReadyCheck" }
+            rpc: { $ref: "#/components/schemas/ReadyCheck" }
+            indexer: { $ref: "#/components/schemas/ReadyCheck" }
+          required: [database, rpc, indexer]
+      required: [ready, checks]
+
+    # ─── Auth ────────────────────────────────────────────────────────────
+    Role:
+      type: string
+      enum: [ADMIN, GOVT_OFFICIAL, AUDITOR, CONTRACTOR, CITIZEN, PUBLIC]
+    SessionUser:
+      type: object
+      properties:
+        id: { type: string }
+        role: { $ref: "#/components/schemas/Role" }
+        roles:
+          type: array
+          items: { $ref: "#/components/schemas/Role" }
+        walletAddress: { type: [string, "null"] }
+        citizenHash: { type: [string, "null"] }
+        wards:
+          type: array
+          items: { type: integer }
+        preferredLang: { type: string }
+        demo: { type: boolean }
+      required: [id, role, roles, walletAddress, citizenHash, wards, preferredLang, demo]
+    AuthTokens:
+      type: object
+      properties:
+        accessToken: { type: string }
+        expiresIn: { type: integer, description: Seconds until the access token expires. }
+        user: { $ref: "#/components/schemas/SessionUser" }
+      required: [accessToken, expiresIn, user]
+    SiweNonceResponse:
+      type: object
+      properties:
+        nonce: { type: string }
+        domain: { type: string }
+        chainId: { type: integer }
+        expiresAt: { type: string, format: date-time }
+      required: [nonce, domain, chainId, expiresAt]
+    SiweVerifyRequest:
+      type: object
+      properties:
+        message: { type: string, maxLength: 4000 }
+        signature: { type: string, pattern: "^0x[0-9a-fA-F]+$" }
+      required: [message, signature]
+    OtpSendRequest:
+      type: object
+      properties:
+        phone: { type: string, minLength: 10, maxLength: 16 }
+      required: [phone]
+    OtpSendResponse:
+      type: object
+      properties:
+        sent: { type: boolean }
+        expiresIn: { type: integer }
+      required: [sent, expiresIn]
+    OtpVerifyRequest:
+      type: object
+      properties:
+        phone: { type: string, minLength: 10, maxLength: 16 }
+        code: { type: string, pattern: "^[0-9]{6}$" }
+      required: [phone, code]
+    DemoLoginRequest:
+      type: object
+      properties:
+        role: { $ref: "#/components/schemas/Role" }
+      required: [role]
+
+    # ─── Reference data ─────────────────────────────────────────────────
+    Ward:
+      type: object
+      properties:
+        id: { type: integer }
+        nameEn: { type: string }
+        nameKn: { type: string }
+        nameTa: { type: string }
+        nameHi: { type: string }
+        city: { type: string }
+      required: [id, nameEn, nameKn, nameTa, nameHi, city]
+    Department:
+      type: object
+      properties:
+        id: { type: integer }
+        code: { type: string }
+        name: { type: string }
+      required: [id, code, name]
+
+    # ─── Projects ───────────────────────────────────────────────────────
+    ProjectCategory:
+      type: string
+      enum: [ROAD, DRAINAGE, WATER_SUPPLY, STREET_LIGHTING, PARK, BUILDING, OTHER]
+    ProjectStatus:
+      type: string
+      enum: [PENDING_APPROVAL, ACTIVE, PAUSED, COMPLETED, CANCELLED]
+    Project:
+      type: object
+      properties:
+        id: { type: integer }
+        title: { type: [string, "null"] }
+        description: { type: [string, "null"] }
+        category: { $ref: "#/components/schemas/ProjectCategory" }
+        status: { $ref: "#/components/schemas/ProjectStatus" }
+        wardId: { type: integer }
+        deptId: { type: integer }
+        latE6: { type: integer }
+        lngE6: { type: integer }
+        budget: { $ref: "#/components/schemas/Amount" }
+        spent: { $ref: "#/components/schemas/Amount" }
+        funded: { $ref: "#/components/schemas/Amount" }
+        officialAddr: { type: string }
+        contractorAddr: { type: [string, "null"] }
+        approvalThreshold: { type: integer }
+        approvalCount: { type: integer }
+        milestoneCount: { type: integer }
+        cancelRequested: { type: boolean }
+        metaCid: { type: string }
+        metaHash: { type: string }
+        startDate: { type: string, format: date-time }
+        endDate: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+        createdTx: { type: string }
+        createdBlock: { type: integer }
+        updatedBlock: { type: integer }
+      required:
+        [id, title, description, category, status, wardId, deptId, latE6, lngE6, budget, spent, funded,
+         officialAddr, contractorAddr, approvalThreshold, approvalCount, milestoneCount, cancelRequested,
+         metaCid, metaHash, startDate, endDate, createdAt, createdTx, createdBlock, updatedBlock]
+    ProjectPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Project" }
+        total: { type: integer }
+      required: [items, total]
+    Approval:
+      type: object
+      properties:
+        auditorAddr: { type: string }
+        txHash: { type: string }
+        block: { type: integer }
+        round: { type: integer }
+      required: [auditorAddr, txHash, block]
+    ProjectDetail:
+      type: object
+      properties:
+        project: { $ref: "#/components/schemas/Project" }
+        approvals:
+          type: array
+          items: { $ref: "#/components/schemas/Approval" }
+        milestones:
+          type: array
+          items: { $ref: "#/components/schemas/Milestone" }
+        grievanceCount: { type: integer }
+        openTenderId: { type: [integer, "null"] }
+        anomalies:
+          type: array
+          items: { $ref: "#/components/schemas/Anomaly" }
+        pendingEvents:
+          type: array
+          items: { $ref: "#/components/schemas/ChainEvent" }
+      required: [project, approvals, milestones, grievanceCount, openTenderId, anomalies, pendingEvents]
+    ProjectStats:
+      type: object
+      properties:
+        totalProjects: { type: integer }
+        byStatus:
+          type: object
+          additionalProperties: { type: integer }
+        totalBudget: { $ref: "#/components/schemas/Amount" }
+        totalSpent: { $ref: "#/components/schemas/Amount" }
+        openGrievances: { type: integer }
+        openAnomalies: { type: integer }
+      required: [totalProjects, byStatus, totalBudget, totalSpent, openGrievances, openAnomalies]
+    CreateProjectRequest:
+      type: object
+      description: Off-chain metadata for `ProjectRegistry.createProject`. The API pins it and returns the CID + hash to sign.
+      properties:
+        title: { type: string, minLength: 3, maxLength: 200 }
+        description: { type: string, minLength: 3, maxLength: 5000 }
+        category: { $ref: "#/components/schemas/ProjectCategory" }
+        wardId: { type: integer, minimum: 0 }
+        deptId: { type: integer, minimum: 0, maximum: 65535 }
+        latE6: { type: integer, minimum: -90000000, maximum: 90000000 }
+        lngE6: { type: integer, minimum: -180000000, maximum: 180000000 }
+        budget: { $ref: "#/components/schemas/Amount" }
+        startDate: { type: string, format: date-time }
+        endDate: { type: string, format: date-time }
+        contractorAddr: { type: [string, "null"], pattern: "^0x[0-9a-fA-F]{40}$" }
+        approvalThreshold: { type: integer, minimum: 1, maximum: 7 }
+        location: { type: string, maxLength: 300 }
+      required: [title, description, category, wardId, deptId, latE6, lngE6, budget, startDate, endDate, approvalThreshold]
+    CreateProjectResponse:
+      type: object
+      properties:
+        metaCID: { type: string }
+        metaHash: { $ref: "#/components/schemas/Bytes32" }
+        registry: { type: string, description: ProjectRegistry address to call. }
+        args:
+          type: object
+          description: The `NewProject` struct, ready for `createProject(p)`.
+          properties:
+            metaHash: { type: string }
+            metaCID: { type: string }
+            wardId: { type: integer }
+            departmentId: { type: integer }
+            category: { type: integer }
+            latE6: { type: integer }
+            lngE6: { type: integer }
+            budget: { type: string }
+            startDate: { type: integer }
+            endDate: { type: integer }
+            contractor: { type: string }
+            approvalThreshold: { type: integer }
+          required: [metaHash, metaCID, wardId, departmentId, category, latE6, lngE6, budget, startDate, endDate, contractor, approvalThreshold]
+      required: [metaCID, metaHash, registry, args]
+    PinMetadataRequest:
+      type: object
+      properties:
+        kind: { type: string, enum: [milestone, tender, grievance-response, reason] }
+        title: { type: string, minLength: 1, maxLength: 200 }
+        description: { type: string, maxLength: 5000 }
+        projectId: { type: integer }
+        extra:
+          type: object
+          additionalProperties: true
+      required: [kind, title]
+    PinnedMetadata:
+      type: object
+      properties:
+        cid: { type: string }
+        hash: { $ref: "#/components/schemas/Bytes32" }
+      required: [cid, hash]
+    VerifyField:
+      type: object
+      properties:
+        field: { type: string }
+        indexed: { type: [string, "null"] }
+        onChain: { type: [string, "null"] }
+        match: { type: boolean }
+      required: [field, indexed, onChain, match]
+    VerifyResult:
+      type: object
+      properties:
+        projectId: { type: integer }
+        verified: { type: boolean }
+        metadataVerified: { type: [boolean, "null"], description: Pinned metadata hashes to the on-chain metaHash (null if not pinned here). }
+        fields:
+          type: array
+          items: { $ref: "#/components/schemas/VerifyField" }
+        contract: { type: string }
+        explorerUrl: { type: string }
+        createdTxUrl: { type: [string, "null"] }
+        checkedAt: { type: string, format: date-time }
+        block: { type: integer }
+      required: [projectId, verified, metadataVerified, fields, contract, explorerUrl, createdTxUrl, checkedAt, block]
+
+    # ─── Milestones ─────────────────────────────────────────────────────
+    MilestoneStatus:
+      type: string
+      enum: [PENDING, PROOF_SUBMITTED, APPROVED, REJECTED, PAID, VOID]
+    Milestone:
+      type: object
+      properties:
+        id: { type: integer }
+        projectId: { type: integer }
+        title: { type: [string, "null"] }
+        description: { type: [string, "null"] }
+        amount: { $ref: "#/components/schemas/Amount" }
+        status: { $ref: "#/components/schemas/MilestoneStatus" }
+        round: { type: integer }
+        approvalCount: { type: integer }
+        metaCid: { type: string }
+        proofCid: { type: [string, "null"] }
+        proofHash: { type: [string, "null"] }
+        proofLatE6: { type: [integer, "null"] }
+        proofLngE6: { type: [integer, "null"] }
+        submittedBy: { type: [string, "null"] }
+        submittedAt: { type: [string, "null"], format: date-time }
+        paidTx: { type: [string, "null"] }
+        paidAt: { type: [string, "null"], format: date-time }
+        createdAt: { type: string, format: date-time }
+        createdTx: { type: string }
+        updatedBlock: { type: integer }
+      required:
+        [id, projectId, title, description, amount, status, round, approvalCount, metaCid, proofCid, proofHash,
+         proofLatE6, proofLngE6, submittedBy, submittedAt, paidTx, paidAt, createdAt, createdTx, updatedBlock]
+    ProofMedia:
+      type: object
+      properties:
+        cid: { type: string }
+        sha256: { type: string }
+        mime: { type: string }
+        exifLat: { type: [number, "null"] }
+        exifLng: { type: [number, "null"] }
+        exifTime: { type: [string, "null"], format: date-time }
+        gpsDistanceM: { type: [number, "null"] }
+        flagged: { type: boolean }
+      required: [cid, sha256, mime, exifLat, exifLng, exifTime, gpsDistanceM, flagged]
+    ProofUploadForm:
+      type: object
+      properties:
+        photos:
+          type: array
+          maxItems: 5
+          items: { type: string, format: binary }
+        latE6: { type: integer, description: Device GPS fix, used when a photo has no EXIF GPS. }
+        lngE6: { type: integer }
+        note: { type: string, maxLength: 1000 }
+      required: [photos]
+    ProofUploadResponse:
+      type: object
+      description: Arguments for `MilestoneEscrow.submitProof(milestoneId, proofCID, proofHash, latE6, lngE6)`.
+      properties:
+        milestoneId: { type: integer }
+        proofCID: { type: string }
+        proofHash: { $ref: "#/components/schemas/Bytes32" }
+        latE6: { type: integer }
+        lngE6: { type: integer }
+        media:
+          type: array
+          items: { $ref: "#/components/schemas/ProofMedia" }
+        warnings:
+          type: array
+          items: { type: string }
+      required: [milestoneId, proofCID, proofHash, latE6, lngE6, media, warnings]
+
+    # ─── Grievances ─────────────────────────────────────────────────────
+    GrievanceCategory:
+      type: string
+      enum: [QUALITY, DELAY, SAFETY, MISSING_WORK, CORRUPTION, OTHER]
+    Grievance:
+      type: object
+      properties:
+        id: { type: integer }
+        projectId: { type: integer }
+        category: { $ref: "#/components/schemas/GrievanceCategory" }
+        status: { type: string, enum: [OPEN, ESCALATED, RESPONDED] }
+        cid: { type: string }
+        upvotes: { type: integer }
+        action: { type: string, enum: [NONE, PAUSE_PROJECT, DISMISS] }
+        responseCid: { type: [string, "null"] }
+        respondedBy: { type: [string, "null"] }
+        escalatedAt: { type: [string, "null"], format: date-time }
+        respondBy: { type: [string, "null"], format: date-time }
+        respondedAt: { type: [string, "null"], format: date-time }
+        createdAt: { type: string, format: date-time }
+        createdTx: { type: string }
+        mine: { type: boolean }
+        upvotedByMe: { type: boolean }
+      required: [id, projectId, category, status, cid, upvotes, action, responseCid, respondedBy, escalatedAt, respondBy, respondedAt, createdAt, createdTx, mine, upvotedByMe]
+    FileGrievanceRequest:
+      type: object
+      properties:
+        projectId: { type: integer, minimum: 1 }
+        category: { $ref: "#/components/schemas/GrievanceCategory" }
+        text: { type: string, minLength: 10, maxLength: 2000 }
+        lang: { type: string, enum: [en, kn, ta, hi] }
+        photoCids:
+          type: array
+          maxItems: 4
+          items: { type: string }
+      required: [projectId, category, text]
+    RelayJob:
+      type: object
+      properties:
+        jobId: { type: string }
+        kind: { type: string }
+        status: { type: string, enum: [queued, registering, submitted, confirmed, failed] }
+        txHash: { type: [string, "null"] }
+        cid: { type: [string, "null"] }
+        error: { type: [string, "null"] }
+      required: [jobId, kind, status, txHash, cid, error]
+
+    # ─── Tenders ────────────────────────────────────────────────────────
+    Tender:
+      type: object
+      properties:
+        id: { type: integer }
+        projectId: { type: integer }
+        officialAddr: { type: string }
+        metaCid: { type: string }
+        status: { type: string, enum: [OPEN, AWARDED, CANCELLED] }
+        phase: { type: string, enum: [COMMIT, REVEAL, AWAITING_AWARD, CLOSED] }
+        commitDeadline: { type: string, format: date-time }
+        revealDeadline: { type: string, format: date-time }
+        bidCount: { type: integer }
+        revealedCount: { type: integer }
+        awardedTo: { type: [string, "null"] }
+        winningBid: { type: [string, "null"] }
+        createdTx: { type: string }
+      required: [id, projectId, officialAddr, metaCid, status, phase, commitDeadline, revealDeadline, bidCount, revealedCount, awardedTo, winningBid, createdTx]
+    Bid:
+      type: object
+      properties:
+        bidderAddr: { type: string }
+        commitHash: { type: string }
+        revealedAmount: { type: [string, "null"] }
+        revealedAt: { type: [string, "null"], format: date-time }
+        committedTx: { type: string }
+      required: [bidderAddr, commitHash, revealedAmount, revealedAt, committedTx]
+    TenderDetail:
+      type: object
+      properties:
+        tender: { $ref: "#/components/schemas/Tender" }
+        bids:
+          type: array
+          items: { $ref: "#/components/schemas/Bid" }
+      required: [tender, bids]
+
+    # ─── Chain ──────────────────────────────────────────────────────────
+    ChainEvent:
+      type: object
+      properties:
+        txHash: { type: string }
+        logIndex: { type: integer }
+        blockNumber: { type: integer }
+        blockTime: { type: [string, "null"], format: date-time }
+        contract: { type: string }
+        eventName: { type: string }
+        args:
+          type: object
+          additionalProperties: true
+        confirmed: { type: boolean }
+      required: [txHash, logIndex, blockNumber, blockTime, contract, eventName, args, confirmed]
+    ChainEventPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/ChainEvent" }
+        total: { type: integer }
+      required: [items, total]
+    TrackTxRequest:
+      type: object
+      properties:
+        txHash: { $ref: "#/components/schemas/TxHash" }
+        kind: { type: string, minLength: 1, maxLength: 64 }
+        entityId: { type: string, maxLength: 64 }
+      required: [txHash, kind]
+    TrackedTx:
+      type: object
+      properties:
+        txHash: { type: string }
+        kind: { type: string }
+        entityId: { type: [string, "null"] }
+        status: { type: string, enum: [pending, mined, confirmed, failed, dropped] }
+        blockNumber: { type: [integer, "null"] }
+        confirmations: { type: [integer, "null"] }
+        explorerUrl: { type: string }
+      required: [txHash, kind, entityId, status, blockNumber, confirmations, explorerUrl]
+    ChainStatus:
+      type: object
+      properties:
+        network: { type: string }
+        chainId: { type: integer }
+        explorerUrl: { type: string }
+        headBlock: { type: [integer, "null"] }
+        indexedBlock: { type: [integer, "null"] }
+        lagBlocks: { type: [integer, "null"] }
+        indexerUpdatedAt: { type: [string, "null"], format: date-time }
+        confirmations: { type: integer }
+        mode: { type: [string, "null"], enum: [LEDGER, ESCROW, null] }
+        contracts:
+          type: object
+          additionalProperties: { type: string }
+        relayer:
+          type: [object, "null"]
+          properties:
+            address: { type: string }
+            balance: { type: string, description: Native balance in ether units. }
+            low: { type: boolean }
+            spentToday: { type: string }
+            dailyCap: { type: string }
+          required: [address, balance, low, spentToday, dailyCap]
+      required: [network, chainId, explorerUrl, headBlock, indexedBlock, lagBlocks, indexerUpdatedAt, confirmations, mode, contracts, relayer]
+    Anomaly:
+      type: object
+      properties:
+        id: { type: string }
+        projectId: { type: integer }
+        rule: { type: string }
+        severity: { type: string, enum: [INFO, WARNING, CRITICAL] }
+        details:
+          type: object
+          additionalProperties: true
+        detectedAt: { type: string, format: date-time }
+        resolvedAt: { type: [string, "null"], format: date-time }
+      required: [id, projectId, rule, severity, details, detectedAt, resolvedAt]
+
+security: []
+
 paths:
-  /healthz:
+  /health:
     get:
-      operationId: healthCheck
+      operationId: getHealth
       tags: [health]
-      summary: Health check
+      summary: Liveness
       responses:
         "200":
-          description: Healthy
+          description: Alive
           content:
             application/json:
-              schema:
-                $ref: "#/components/schemas/HealthStatus"
-  /auth/nonce:
+              schema: { $ref: "#/components/schemas/HealthStatus" }
+  /ready:
+    get:
+      operationId: getReady
+      tags: [health]
+      summary: Readiness — database, RPC and indexer lag < 60 s
+      responses:
+        "200":
+          description: Ready
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReadyStatus" }
+        "503":
+          description: Not ready
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReadyStatus" }
+
+  # ─── Auth ──────────────────────────────────────────────────────────────
+  /auth/siwe/nonce:
     post:
-      operationId: createAuthNonce
+      operationId: createSiweNonce
       tags: [auth]
-      summary: Create a wallet signature nonce
+      summary: Single-use nonce for a Sign-In With Ethereum (EIP-4361) message
+      responses:
+        "200":
+          description: Nonce
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SiweNonceResponse" }
+  /auth/siwe/verify:
+    post:
+      operationId: verifySiwe
+      tags: [auth]
+      summary: Verify a signed SIWE message; roles are read from NammaSevaAccess on-chain
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              $ref: "#/components/schemas/AuthNonceRequest"
+            schema: { $ref: "#/components/schemas/SiweVerifyRequest" }
       responses:
         "200":
-          description: Nonce generated
+          description: Signed in; also sets the httpOnly `ns_session` refresh cookie
           content:
             application/json:
-              schema:
-                $ref: "#/components/schemas/AuthNonceResponse"
-  /auth/verify:
+              schema: { $ref: "#/components/schemas/AuthTokens" }
+        "401":
+          description: Invalid message or signature
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /auth/otp/send:
     post:
-      operationId: verifyWalletSignature
+      operationId: sendOtp
       tags: [auth]
-      summary: Verify wallet signature and issue JWT
+      summary: Send a 6-digit login code to a citizen's phone
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              $ref: "#/components/schemas/AuthVerifyRequest"
+            schema: { $ref: "#/components/schemas/OtpSendRequest" }
       responses:
         "200":
-          description: Token issued
+          description: Sent
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OtpSendResponse" }
+        "429":
+          description: Too many codes requested
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /auth/otp/verify:
+    post:
+      operationId: verifyOtp
+      tags: [auth]
+      summary: Verify the code and sign the citizen in
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OtpVerifyRequest" }
+      responses:
+        "200":
+          description: Signed in; also sets the `ns_session` cookie
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthTokens" }
+        "401":
+          description: Wrong or expired code
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /auth/refresh:
+    post:
+      operationId: refreshSession
+      tags: [auth]
+      summary: Rotate the refresh cookie and issue a new access token
+      responses:
+        "200":
+          description: Refreshed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthTokens" }
+        "401":
+          description: No valid session
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Revoke the refresh session
+      responses:
+        "204":
+          description: Signed out
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      security: [{ bearer: [] }]
+      summary: Current user
+      responses:
+        "200":
+          description: User
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionUser" }
+        "401":
+          description: Not signed in
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /auth/demo:
+    post:
+      operationId: demoLogin
+      tags: [auth]
+      summary: DEMO ONLY (NS_DEMO_MODE=true) — sign in as a role without a wallet or phone
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DemoLoginRequest" }
+      responses:
+        "200":
+          description: Demo session
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthTokens" }
+        "404":
+          description: Demo mode is off
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  # ─── Reference ─────────────────────────────────────────────────────────
+  /wards:
+    get:
+      operationId: listWards
+      tags: [reference]
+      responses:
+        "200":
+          description: Wards
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuthVerifyResponse"
+                type: array
+                items: { $ref: "#/components/schemas/Ward" }
+  /departments:
+    get:
+      operationId: listDepartments
+      tags: [reference]
+      responses:
+        "200":
+          description: Departments
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Department" }
+
+  # ─── Projects ──────────────────────────────────────────────────────────
   /projects:
     get:
       operationId: listProjects
       tags: [projects]
-      summary: List all projects
+      parameters:
+        - { name: wardId, in: query, schema: { type: integer } }
+        - { name: status, in: query, schema: { $ref: "#/components/schemas/ProjectStatus" } }
+        - { name: official, in: query, schema: { type: string } }
+        - { name: contractor, in: query, schema: { type: string } }
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
       responses:
         "200":
-          description: Project list
+          description: Projects, newest first
           content:
             application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Project"
+              schema: { $ref: "#/components/schemas/ProjectPage" }
     post:
-      operationId: createProject
+      operationId: prepareProject
       tags: [projects]
-      summary: Create a demo project and mirror intended on-chain data
+      security: [{ bearer: [] }]
+      summary: Validate + pin project metadata; returns `{metaCID, metaHash}` and the struct for the wallet to sign
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              $ref: "#/components/schemas/CreateProjectRequest"
+            schema: { $ref: "#/components/schemas/CreateProjectRequest" }
       responses:
         "201":
-          description: Project created
+          description: Metadata pinned
           content:
             application/json:
-              schema:
-                $ref: "#/components/schemas/Project"
+              schema: { $ref: "#/components/schemas/CreateProjectResponse" }
+        "400":
+          description: Validation failed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
   /projects/stats:
     get:
       operationId: getProjectStats
       tags: [projects]
-      summary: Platform spending statistics
+      parameters:
+        - { name: wardId, in: query, schema: { type: integer } }
       responses:
         "200":
-          description: Project stats
+          description: Stats
           content:
             application/json:
-              schema:
-                $ref: "#/components/schemas/ProjectStats"
-  /projects/sync:
-    post:
-      operationId: syncProjects
-      tags: [projects]
-      summary: Force blockchain sync
-      responses:
-        "200":
-          description: Sync result
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SyncResponse"
+              schema: { $ref: "#/components/schemas/ProjectStats" }
   /projects/{id}:
     get:
       operationId: getProject
       tags: [projects]
-      summary: Get one project with milestones
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
+        - { name: id, in: path, required: true, schema: { type: integer } }
       responses:
         "200":
-          description: Project detail
+          description: Project with milestones, approvals and anomalies
           content:
             application/json:
-              schema:
-                $ref: "#/components/schemas/ProjectDetail"
+              schema: { $ref: "#/components/schemas/ProjectDetail" }
+        "404":
+          description: Not indexed (yet)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /metadata:
+    post:
+      operationId: pinMetadata
+      tags: [projects]
+      security: [{ bearer: [] }]
+      summary: Pin milestone / tender / response / reason metadata; returns `{cid, hash}` to sign
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PinMetadataRequest" }
+      responses:
+        "201":
+          description: Pinned
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PinnedMetadata" }
+  /verify/{projectId}:
+    get:
+      operationId: verifyProject
+      tags: [projects]
+      summary: Compare the indexed record with a live on-chain read and the pinned metadata hash
+      parameters:
+        - { name: projectId, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Verification result
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VerifyResult" }
+        "404":
+          description: Unknown project
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  # ─── Milestones ────────────────────────────────────────────────────────
   /milestones/pending:
     get:
       operationId: listPendingMilestones
       tags: [milestones]
-      summary: List milestones with submitted proof awaiting auditor review
-      responses:
-        "200":
-          description: Pending milestone list
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/PendingMilestone"
-  /milestones/{projectId}:
-    get:
-      operationId: listMilestones
-      tags: [milestones]
-      summary: List milestones for a project
+      summary: Milestones with proof awaiting auditor review
       parameters:
-        - name: projectId
-          in: path
-          required: true
-          schema:
-            type: string
+        - { name: wardId, in: query, schema: { type: integer } }
       responses:
         "200":
-          description: Milestone list
+          description: Pending review
           content:
             application/json:
               schema:
                 type: array
-                items:
-                  $ref: "#/components/schemas/Milestone"
-  /milestones:
-    post:
-      operationId: createMilestone
+                items: { $ref: "#/components/schemas/Milestone" }
+  /milestones/{id}:
+    get:
+      operationId: getMilestone
       tags: [milestones]
-      summary: Create a milestone for a project
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CreateMilestoneRequest"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
       responses:
-        "201":
-          description: Milestone created
+        "200":
+          description: Milestone
           content:
             application/json:
-              schema:
-                $ref: "#/components/schemas/Milestone"
-  /milestones/{id}/upload-proof:
+              schema: { $ref: "#/components/schemas/Milestone" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /milestones/{id}/proof/upload:
     post:
       operationId: uploadMilestoneProof
       tags: [milestones]
-      summary: Submit geo-tagged proof metadata and IPFS CID
+      security: [{ bearer: [] }]
+      summary: Upload geo-tagged photos; returns `proofCID` + `proofHash` for `submitProof`
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
+        - { name: id, in: path, required: true, schema: { type: integer } }
       requestBody:
         required: true
         content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/SubmitProofRequest"
+          multipart/form-data:
+            schema: { $ref: "#/components/schemas/ProofUploadForm" }
       responses:
-        "200":
-          description: Proof submitted
+        "201":
+          description: Proof pinned
           content:
             application/json:
-              schema:
-                $ref: "#/components/schemas/Milestone"
-  /milestones/{id}/approve:
-    post:
-      operationId: approveMilestone
-      tags: [milestones]
-      summary: Auditor approval toward 2-of-3 payment release
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ApproveMilestoneRequest"
-      responses:
-        "200":
-          description: Milestone approval result
+              schema: { $ref: "#/components/schemas/ProofUploadResponse" }
+        "400":
+          description: Invalid upload
           content:
             application/json:
-              schema:
-                $ref: "#/components/schemas/Milestone"
-  /milestones/{id}/reject:
-    post:
-      operationId: rejectMilestone
-      tags: [milestones]
-      summary: Auditor rejects a submitted milestone proof
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/RejectMilestoneRequest"
-      responses:
-        "200":
-          description: Milestone rejection result
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Milestone"
-  /projects/{id}/report:
-    post:
-      operationId: reportProjectConcern
-      tags: [projects]
-      summary: Citizen files an on-chain concern that pauses payment release
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ReportConcernRequest"
-      responses:
-        "200":
-          description: Report accepted
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ProjectReport"
-  /projects/{id}/reports:
-    get:
-      operationId: listProjectReports
-      tags: [projects]
-      summary: List filed citizen concerns for a project
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: Project reports
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/ProjectReport"
+              schema: { $ref: "#/components/schemas/Error" }
   /milestones/{id}/proof:
     get:
       operationId: getMilestoneProof
       tags: [milestones]
-      summary: Fetch stored proof metadata
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
+        - { name: id, in: path, required: true, schema: { type: integer } }
       responses:
         "200":
-          description: Proof metadata
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ProofMetadata"
-  /analytics/overview:
-    get:
-      operationId: getAnalyticsOverview
-      tags: [analytics]
-      summary: Landing page overview metrics and recent activity
-      responses:
-        "200":
-          description: Analytics overview
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AnalyticsOverview"
-  /analytics/anomalies:
-    get:
-      operationId: listAnomalies
-      tags: [analytics]
-      summary: List flagged projects
-      responses:
-        "200":
-          description: Anomaly list
+          description: Uploaded proof media for the milestone
           content:
             application/json:
               schema:
                 type: array
-                items:
-                  $ref: "#/components/schemas/AnomalyFlag"
-components:
-  schemas:
-    HealthStatus:
-      type: object
-      properties:
-        status:
-          type: string
-      required: [status]
-    AuthNonceRequest:
-      type: object
-      properties:
-        walletAddress:
-          type: string
-      required: [walletAddress]
-    AuthNonceResponse:
-      type: object
-      properties:
-        nonce:
-          type: string
-      required: [nonce]
-    AuthVerifyRequest:
-      type: object
-      properties:
-        walletAddress:
-          type: string
-        signature:
-          type: string
-      required: [walletAddress, signature]
-    User:
-      type: object
-      properties:
-        walletAddress:
-          type: string
-        role:
-          type: string
-          enum: [ADMIN, GOVT_OFFICIAL, CONTRACTOR, AUDITOR, CITIZEN]
-      required: [walletAddress, role]
-    AuthVerifyResponse:
-      type: object
-      properties:
-        token:
-          type: string
-        user:
-          $ref: "#/components/schemas/User"
-      required: [token, user]
-    Project:
-      type: object
-      properties:
-        id:
-          type: string
-        title:
-          type: string
-        description:
-          type: string
-        location:
-          type: string
-        latitude:
-          type: number
-        longitude:
-          type: number
-        totalBudget:
-          type: number
-        spentAmount:
-          type: number
-        startDate:
-          type: string
-        endDate:
-          type: string
-        officialAddress:
-          type: string
-        contractorAddress:
-          type: string
-        status:
-          type: string
-          enum: [CREATED, ACTIVE, COMPLETED, PAUSED, CANCELLED]
-        milestoneCount:
-          type: integer
-        txHash:
-          type: string
-        riskLevel:
-          type: string
-          enum: [LOW, MEDIUM, HIGH, CRITICAL]
-        category:
-          $ref: "#/components/schemas/ProjectCategory"
-        reportCount:
-          type: integer
-      required: [id, title, description, location, latitude, longitude, totalBudget, spentAmount, startDate, endDate, officialAddress, contractorAddress, status, milestoneCount, txHash, riskLevel, category, reportCount]
-    ProjectCategory:
-      type: string
-      enum: [ROAD, DRAINAGE, WATER_SUPPLY, STREET_LIGHTING, PARK, BUILDING, OTHER]
-    CreateProjectRequest:
-      type: object
-      properties:
-        title:
-          type: string
-        description:
-          type: string
-        location:
-          type: string
-        latitude:
-          type: number
-        longitude:
-          type: number
-        totalBudget:
-          type: number
-        endDate:
-          type: string
-        contractorAddress:
-          type: string
-        category:
-          $ref: "#/components/schemas/ProjectCategory"
-      required: [title, description, location, latitude, longitude, totalBudget, endDate, contractorAddress, category]
-    ProjectDetail:
-      type: object
-      properties:
-        project:
-          $ref: "#/components/schemas/Project"
-        milestones:
-          type: array
-          items:
-            $ref: "#/components/schemas/Milestone"
-        anomalies:
-          type: array
-          items:
-            $ref: "#/components/schemas/AnomalyFlag"
-      required: [project, milestones, anomalies]
-    Milestone:
-      type: object
-      properties:
-        id:
-          type: string
-        projectId:
-          type: string
-        title:
-          type: string
-        description:
-          type: string
-        paymentAmount:
-          type: number
-        ipfsProofCID:
-          type: string
-        proofLatitude:
-          type: number
-        proofLongitude:
-          type: number
-        submittedAt:
-          type: string
-        approvedAt:
-          type: string
-        submittedBy:
-          type: string
-        status:
-          type: string
-          enum: [PENDING, PROOF_SUBMITTED, APPROVED, REJECTED, PAID]
-        approvalCount:
-          type: integer
-        txHash:
-          type: string
-      required: [id, projectId, title, description, paymentAmount, status, approvalCount, txHash]
-    CreateMilestoneRequest:
-      type: object
-      properties:
-        projectId:
-          type: string
-        title:
-          type: string
-        description:
-          type: string
-        paymentAmount:
-          type: number
-      required: [projectId, title, description, paymentAmount]
-    SubmitProofRequest:
-      type: object
-      properties:
-        ipfsCID:
-          type: string
-        latitude:
-          type: number
-        longitude:
-          type: number
-        submittedBy:
-          type: string
-        proofDescription:
-          type: string
-      required: [latitude, longitude, submittedBy]
-    ApproveMilestoneRequest:
-      type: object
-      properties:
-        auditorAddress:
-          type: string
-      required: [auditorAddress]
-    RejectMilestoneRequest:
-      type: object
-      properties:
-        auditorAddress:
-          type: string
-        reason:
-          type: string
-      required: [auditorAddress, reason]
-    PendingMilestone:
-      type: object
-      properties:
-        id:
-          type: string
-        projectId:
-          type: string
-        projectTitle:
-          type: string
-        title:
-          type: string
-        description:
-          type: string
-        paymentAmount:
-          type: number
-        ipfsProofCID:
-          type: string
-        proofLatitude:
-          type: number
-        proofLongitude:
-          type: number
-        submittedAt:
-          type: string
-        submittedBy:
-          type: string
-        status:
-          type: string
-          enum: [PENDING, PROOF_SUBMITTED, APPROVED, REJECTED, PAID]
-        approvalCount:
-          type: integer
-      required: [id, projectId, projectTitle, title, description, paymentAmount, status, approvalCount]
-    ReportConcernRequest:
-      type: object
-      properties:
-        reporterAddress:
-          type: string
-        reason:
-          type: string
-        category:
-          type: string
-          enum: [QUALITY, MISSING_WORK, SAFETY, BUDGET, OTHER]
-      required: [reporterAddress, reason, category]
-    ProjectReport:
-      type: object
-      properties:
-        id:
-          type: string
-        projectId:
-          type: string
-        reporterAddress:
-          type: string
-        reason:
-          type: string
-        category:
-          type: string
-          enum: [QUALITY, MISSING_WORK, SAFETY, BUDGET, OTHER]
-        status:
-          type: string
-          enum: [PENDING_REVIEW, ACKNOWLEDGED, DISMISSED]
-        createdAt:
-          type: string
-      required: [id, projectId, reporterAddress, reason, category, status, createdAt]
-    ProofMetadata:
-      type: object
-      properties:
-        milestoneId:
-          type: string
-        ipfsProofCID:
-          type: string
-        gatewayUrl:
-          type: string
-        latitude:
-          type: number
-        longitude:
-          type: number
-        submittedAt:
-          type: string
-        submittedBy:
-          type: string
-      required: [milestoneId, ipfsProofCID, gatewayUrl, latitude, longitude, submittedAt, submittedBy]
-    ProjectStats:
-      type: object
-      properties:
-        totalProjects:
-          type: integer
-        activeProjects:
-          type: integer
-        completedProjects:
-          type: integer
-        totalBudget:
-          type: number
-        totalSpent:
-          type: number
-        flaggedProjects:
-          type: integer
-      required: [totalProjects, activeProjects, completedProjects, totalBudget, totalSpent, flaggedProjects]
-    SyncResponse:
-      type: object
-      properties:
-        synced:
-          type: boolean
-        lastProcessedBlock:
-          type: integer
-        message:
-          type: string
-      required: [synced, lastProcessedBlock, message]
-    ActivityEvent:
-      type: object
-      properties:
-        id:
-          type: string
-        type:
-          type: string
-        title:
-          type: string
-        projectId:
-          type: string
-        txHash:
-          type: string
-        timestamp:
-          type: string
-      required: [id, type, title, projectId, txHash, timestamp]
-    AnalyticsOverview:
-      type: object
-      properties:
-        stats:
-          $ref: "#/components/schemas/ProjectStats"
-        recentActivity:
-          type: array
-          items:
-            $ref: "#/components/schemas/ActivityEvent"
-        budgetByStatus:
-          type: array
-          items:
-            type: object
-            properties:
-              status:
-                type: string
-              budget:
-                type: number
-            required: [status, budget]
-      required: [stats, recentActivity, budgetByStatus]
-    AnomalyFlag:
-      type: object
-      properties:
-        id:
-          type: string
-        projectId:
-          type: string
-        projectTitle:
-          type: string
-        severity:
-          type: string
-          enum: [WARNING, CRITICAL]
-        reason:
-          type: string
-        createdAt:
-          type: string
-      required: [id, projectId, projectTitle, severity, reason, createdAt]
+                items: { $ref: "#/components/schemas/ProofMedia" }
+
+  # ─── Grievances ────────────────────────────────────────────────────────
+  /grievances:
+    get:
+      operationId: listGrievances
+      tags: [grievances]
+      parameters:
+        - { name: projectId, in: query, schema: { type: integer } }
+        - { name: status, in: query, schema: { type: string, enum: [OPEN, ESCALATED, RESPONDED] } }
+        - { name: mine, in: query, schema: { type: boolean } }
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Grievances, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Grievance" }
+    post:
+      operationId: fileGrievance
+      tags: [grievances]
+      security: [{ bearer: [] }]
+      summary: Citizen files a grievance; relayed gaslessly through the TrustedForwarder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FileGrievanceRequest" }
+      responses:
+        "202":
+          description: Queued for the relayer
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RelayJob" }
+        "429":
+          description: Daily limit reached
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /grievances/{id}:
+    get:
+      operationId: getGrievance
+      tags: [grievances]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Grievance
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Grievance" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /grievances/{id}/upvote:
+    post:
+      operationId: upvoteGrievance
+      tags: [grievances]
+      security: [{ bearer: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "202":
+          description: Queued for the relayer
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RelayJob" }
+        "409":
+          description: Already upvoted / own grievance
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /relay/jobs/{jobId}:
+    get:
+      operationId: getRelayJob
+      tags: [grievances]
+      security: [{ bearer: [] }]
+      parameters:
+        - { name: jobId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Relay job status
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RelayJob" }
+        "404":
+          description: Unknown job
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  # ─── Tenders ───────────────────────────────────────────────────────────
+  /tenders:
+    get:
+      operationId: listTenders
+      tags: [tenders]
+      parameters:
+        - { name: projectId, in: query, schema: { type: integer } }
+        - { name: status, in: query, schema: { type: string, enum: [OPEN, AWARDED, CANCELLED] } }
+      responses:
+        "200":
+          description: Tenders (bids are committed / revealed on-chain via TenderRegistry)
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Tender" }
+  /tenders/{id}:
+    get:
+      operationId: getTender
+      tags: [tenders]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "200":
+          description: Tender with bids
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TenderDetail" }
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  # ─── Chain ─────────────────────────────────────────────────────────────
+  /tx/track:
+    post:
+      operationId: trackTx
+      tags: [chain]
+      summary: Register a wallet-sent tx for optimistic "Pending" UI until the indexer confirms it
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TrackTxRequest" }
+      responses:
+        "202":
+          description: Tracking
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TrackedTx" }
+  /tx/{txHash}:
+    get:
+      operationId: getTrackedTx
+      tags: [chain]
+      parameters:
+        - { name: txHash, in: path, required: true, schema: { $ref: "#/components/schemas/TxHash" } }
+      responses:
+        "200":
+          description: Tracked tx status
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TrackedTx" }
+        "404":
+          description: Not tracked
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /chain/status:
+    get:
+      operationId: getChainStatus
+      tags: [chain]
+      summary: Network, head block, indexer lag and relayer balance
+      responses:
+        "200":
+          description: Status
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChainStatus" }
+  /ledger:
+    get:
+      operationId: listLedgerEvents
+      tags: [chain]
+      summary: Indexed on-chain events, newest first
+      parameters:
+        - { name: contract, in: query, schema: { type: string } }
+        - { name: eventName, in: query, schema: { type: string } }
+        - { name: projectId, in: query, schema: { type: integer } }
+        - { name: includePending, in: query, schema: { type: boolean } }
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Events
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChainEventPage" }
+  /anomalies:
+    get:
+      operationId: listAnomalies
+      tags: [chain]
+      parameters:
+        - { name: projectId, in: query, schema: { type: integer } }
+        - { name: open, in: query, schema: { type: boolean } }
+      responses:
+        "200":
+          description: Anomalies
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Anomaly" }
+
+  # ─── Public ────────────────────────────────────────────────────────────
+  /public/export.csv:
+    get:
+      operationId: exportProjectsCsv
+      tags: [public]
+      summary: Open-data CSV of projects (optionally one ward)
+      parameters:
+        - { name: wardId, in: query, schema: { type: integer } }
+      responses:
+        "200":
+          description: CSV
+          content:
+            text/csv:
+              schema: { type: string }

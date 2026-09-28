@@ -706,11 +706,6 @@ export const tenderRegistryAbi = [
             "internalType": "uint128",
             "name": "winningBid",
             "type": "uint128"
-          },
-          {
-            "internalType": "string",
-            "name": "metaCID",
-            "type": "string"
           }
         ],
         "internalType": "struct TenderRegistry.Tender",

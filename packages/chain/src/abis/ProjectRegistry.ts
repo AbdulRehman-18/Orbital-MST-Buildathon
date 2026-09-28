@@ -993,11 +993,6 @@ export const projectRegistryAbi = [
             "internalType": "bool",
             "name": "cancelRequested",
             "type": "bool"
-          },
-          {
-            "internalType": "string",
-            "name": "metaCID",
-            "type": "string"
           }
         ],
         "internalType": "struct IProjectRegistry.Project",

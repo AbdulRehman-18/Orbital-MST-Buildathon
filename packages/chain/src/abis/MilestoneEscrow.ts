@@ -862,40 +862,11 @@ export const milestoneEscrowAbi = [
             "internalType": "enum MilestoneEscrow.MilestoneStatus",
             "name": "status",
             "type": "uint8"
-          },
-          {
-            "internalType": "string",
-            "name": "metaCID",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "proofCID",
-            "type": "string"
           }
         ],
         "internalType": "struct MilestoneEscrow.Milestone",
         "name": "",
         "type": "tuple"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "projectId",
-        "type": "uint256"
-      }
-    ],
-    "name": "getProjectMilestoneIds",
-    "outputs": [
-      {
-        "internalType": "uint256[]",
-        "name": "",
-        "type": "uint256[]"
       }
     ],
     "stateMutability": "view",

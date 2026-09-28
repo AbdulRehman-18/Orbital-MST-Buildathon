@@ -5,12 +5,16 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./schema": "./src/schema/index.ts"
+    "./schema": "./src/schema/index.ts",
+    "./seed": "./src/seed.ts",
+    "./testing": "./src/testing.ts"
   },
   "scripts": {
-    "generate": "drizzle-kit generate --config ./drizzle.config.ts",
-    "migrate": "drizzle-kit migrate --config ./drizzle.config.ts",
-    "push": "drizzle-kit push --config ./drizzle.config.ts"
+    "generate": "drizzle-kit generate",
+    "migrate": "tsx src/cli.ts migrate",
+    "seed": "tsx src/cli.ts seed",
+    "push": "drizzle-kit push",
+    "studio": "drizzle-kit studio"
   },
   "dependencies": {
     "drizzle-orm": "catalog:",
@@ -19,8 +23,14 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@types/node": "catalog:",
     "@types/pg": "^8.18.0",
-    "drizzle-kit": "^0.31.9"
-  }
+    "drizzle-kit": "^0.31.9",
+    "tsx": "catalog:"
+  },
+  "files": [
+    "src",
+    "drizzle"
+  ]
 }

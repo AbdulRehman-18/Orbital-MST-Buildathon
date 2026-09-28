@@ -1,4 +1,8 @@
 # Build context: repo root. `docker build -f infra/docker/Dockerfile.api -t namma-seva-api .`
+# One image, three processes (plan §9.3 — the indexer is a separate singleton process):
+#   API       node dist/index.mjs            (default CMD)
+#   indexer   node dist/indexer.mjs run      (exactly one replica per network; advisory-locked)
+#   migrate   node dist/migrate.mjs --seed   (release step, before API/indexer start)
 FROM node:22-alpine AS build
 RUN corepack enable
 WORKDIR /app
