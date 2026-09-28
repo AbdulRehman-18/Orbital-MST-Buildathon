@@ -15,7 +15,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "migrate": "node --enable-source-maps ./dist/migrate.mjs"
+    "migrate": "node --enable-source-maps ./dist/migrate.mjs",
+    "demo:seed": "tsx src/demo/seed.ts"
   },
   "dependencies": {
     "@namma-seva/api-zod": "workspace:*",

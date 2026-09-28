@@ -20,3 +20,6 @@ packages/contracts/deployments/hardhat.json
 
 .DS_Store
 *.log
+
+# local dev data (IPFS dev store, PGlite)
+.data/

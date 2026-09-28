@@ -22,9 +22,12 @@
     "db:migrate": "pnpm --filter @namma-seva/db migrate",
     "db:seed": "pnpm --filter @namma-seva/db seed",
     "test:api": "pnpm --filter @namma-seva/api test",
-    "chain:node": "pnpm --filter @namma-seva/contracts node"
+    "chain:node": "pnpm --filter @namma-seva/contracts node",
+    "demo": "node scripts/demo.mjs"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.8",
+    "@electric-sql/pglite-socket": "0.2.11",
     "prettier": "^3.8.1",
     "typescript": "~5.9.2"
   }
