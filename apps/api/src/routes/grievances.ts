@@ -1,4 +1,4 @@
-import { and, desc, eq, grievances, grievanceUpvotes, projects, sql, type SQL } from "@namma-seva/db";
+import { and, desc, eq, grievances, grievanceUpvotes, inArray, projects, type SQL } from "@namma-seva/db";
 import {
   FileGrievanceBody,
   GetGrievanceParams,
@@ -39,7 +39,7 @@ export default function grievanceRoutes(ctx: AppContext): IRouter {
     const rows = await db
       .select({ id: grievanceUpvotes.grievanceId })
       .from(grievanceUpvotes)
-      .where(and(eq(grievanceUpvotes.citizenHash, me), sql`${grievanceUpvotes.grievanceId} = any(${ids})`));
+      .where(and(eq(grievanceUpvotes.citizenHash, me), inArray(grievanceUpvotes.grievanceId, ids)));
     return new Set(rows.map((r) => r.id));
   }
 

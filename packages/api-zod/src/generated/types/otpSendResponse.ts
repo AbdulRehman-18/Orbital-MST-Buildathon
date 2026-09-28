@@ -17,4 +17,6 @@
 export interface OtpSendResponse {
   sent: boolean;
   expiresIn: number;
+  /** DEMO MODE ONLY — the code, shown on screen so anyone can try the citizen flow. */
+  devCode?: string;
 }

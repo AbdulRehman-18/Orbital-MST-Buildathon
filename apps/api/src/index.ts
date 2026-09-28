@@ -6,7 +6,8 @@ import { ChainRoleReader, type RoleReader } from "./auth/roles";
 import { TokenService } from "./auth/tokens";
 import { loadConfig } from "./config";
 import type { AppContext } from "./context";
-import { createIpfs } from "./ipfs/ipfs";
+import { demoAccount, demoWallet } from "./demo/accounts";
+import { createIpfs, devIpfsDir } from "./ipfs/ipfs";
 import { logger } from "./lib/logger";
 import { BullJobQueue, MemoryJobQueue } from "./relayer/queue";
 import { createWallet, Relayer } from "./relayer/relayer";
@@ -34,9 +35,14 @@ const roles: RoleReader = chain
   ? new ChainRoleReader(chain.contracts.contract("NammaSevaAccess", chain.provider))
   : { rolesOf: async () => [] };
 
+// Demo mode without an explicit key uses the demo cast's relayer burner (index 5).
+const relayerKey =
+  config.relayer.privateKey ??
+  (config.demoMnemonic ? demoWallet(config.demoMnemonic, demoAccount("relayer").index).privateKey : undefined);
+
 let relayer: Relayer | undefined;
-if (chain && config.relayer.privateKey) {
-  const wallet = createWallet(config.relayer.privateKey, chain.provider);
+if (chain && relayerKey) {
+  const wallet = createWallet(relayerKey, chain.provider);
   const lock = redis ? new RedisNonceLock(redis, `ns:relayer:${config.chainName}:${wallet.address}`) : new MemoryNonceLock();
   const sender = new TxSender(wallet, lock, logger, config.relayer.gasBumpAfterMs);
   relayer = new Relayer({
@@ -44,7 +50,7 @@ if (chain && config.relayer.privateKey) {
     provider: chain.provider,
     contracts: chain.contracts,
     chainId: config.network.id,
-    rootPrivateKey: config.relayer.privateKey,
+    rootPrivateKey: relayerKey,
     sender,
     logger,
     minBalance: config.relayer.minBalance,
@@ -74,7 +80,8 @@ const ctx: AppContext = {
       pinataJwt: config.ipfs.pinataJwt,
       gateway: config.ipfs.gateway,
       production: config.production,
-      apiBaseUrl: `http://localhost:${config.port}`,
+      apiBaseUrl: config.publicBaseUrl,
+      localDir: devIpfsDir(),
     },
     logger,
   ),

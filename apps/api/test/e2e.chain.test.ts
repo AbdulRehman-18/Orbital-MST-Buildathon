@@ -170,13 +170,19 @@ describe.skipIf(!reachable)("e2e on a local Hardhat node", () => {
     // 2. Auditors approve; official funds and creates a milestone; contractor proves; payout.
     await send(as(registry, auditor1).approveProject(projectId));
     await send(as(registry, auditor2).approveProject(projectId));
-    await send(as(escrow, official).fundProject(projectId, { value: 3n * 10n ** 18n }));
+    // Local deploys default to LEDGER (INR paise); NS_LOCAL_MODE=ESCROW uses native coin.
+    const ledger = Number(await escrow.mode!()) === 0;
+    await send(
+      ledger
+        ? as(escrow, official).recordSanction(projectId, 3n * 10n ** 18n, id("PFMS/E2E/1"))
+        : as(escrow, official).fundProject(projectId, { value: 3n * 10n ** 18n }),
+    );
     await send(as(escrow, official).createMilestone(projectId, id("m1"), "bafkreim1", 10n ** 18n));
     const milestoneId = (await escrow.milestoneCount!()) as bigint;
     await send(as(escrow, contractor).submitProof(milestoneId, "bafkreiproof", id("proof"), 12_934_540, 77_626_570));
     await send(as(escrow, auditor1).approveMilestone(milestoneId));
     await send(as(escrow, auditor2).approveMilestone(milestoneId));
-    await send(as(escrow, official).releaseFunds(milestoneId, "0x" + "00".repeat(32)));
+    await send(as(escrow, official).releaseFunds(milestoneId, ledger ? id("UTR/E2E/1") : "0x" + "00".repeat(32)));
 
     // 3. Two citizens, no wallets: grievance + upvote through the ERC-2771 forwarder.
     const citizenA = id("citizen:+919845012345");
@@ -187,7 +193,8 @@ describe.skipIf(!reachable)("e2e on a local Hardhat node", () => {
 
     await mine(3);
     await indexer.catchUp();
-    const [grv] = await db.select().from(grievances);
+    // The chain may carry other data (e.g. `pnpm demo`), so select this test's grievance.
+    const [grv] = await db.select().from(grievances).where(eq(grievances.citizenHash, citizenA));
     expect(grv).toMatchObject({ citizenHash: citizenA, status: "OPEN" });
 
     const up = await relayer.enqueueUpvote("ub", citizenB, grv.id);
@@ -214,7 +221,8 @@ describe.skipIf(!reachable)("e2e on a local Hardhat node", () => {
     expect(m).toMatchObject({ status: "PAID", approvalCount: 2 });
     const [grvAfter] = await db.select().from(grievances).where(eq(grievances.id, grv.id));
     expect(grvAfter.upvotes).toBe(1);
-    expect(await db.select().from(citizenSigners)).toHaveLength(2);
+    const signers = await db.select().from(citizenSigners);
+    expect(signers.map((x) => x.citizenHash)).toEqual(expect.arrayContaining([citizenA, citizenB]));
 
     // 5. "Verify on chain": indexed row == live read, and the pinned metadata re-hashes to metaHash.
     const verify = await request(app).get(`/api/verify/${projectId}`).expect(200);

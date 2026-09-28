@@ -34,6 +34,7 @@ import type {
   ChainStatus,
   CreateProjectRequest,
   CreateProjectResponse,
+  DemoConfig,
   DemoLoginRequest,
   Department,
   Error,
@@ -45,10 +46,12 @@ import type {
   ListAnomaliesParams,
   ListGrievancesParams,
   ListLedgerEventsParams,
+  ListMilestonesParams,
   ListPendingMilestonesParams,
   ListProjectsParams,
   ListTendersParams,
   Milestone,
+  MilestoneWithProject,
   OtpSendRequest,
   OtpSendResponse,
   OtpVerifyRequest,
@@ -62,6 +65,7 @@ import type {
   ProofUploadResponse,
   ReadyStatus,
   RelayJob,
+  RoleHolder,
   SessionUser,
   SiweNonceResponse,
   SiweVerifyRequest,
@@ -1528,6 +1532,90 @@ export function useVerifyProject<TData = Awaited<ReturnType<typeof verifyProject
 
 
 
+export const getListMilestonesUrl = (params?: ListMilestonesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/milestones?${stringifiedParams}` : `/api/milestones`
+}
+
+/**
+ * @summary Milestones with their project and current-round approvers (dashboard queues)
+ */
+export const listMilestones = async (params?: ListMilestonesParams, options?: Parameters<typeof customFetch>[1]): Promise<MilestoneWithProject[]> => {
+
+  return customFetch<MilestoneWithProject[]>(getListMilestonesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListMilestonesQueryKey = (params?: ListMilestonesParams,) => {
+    return [
+    `/api/milestones`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListMilestonesQueryOptions = <TData = Awaited<ReturnType<typeof listMilestones>>, TError = ErrorType<unknown>>(params?: ListMilestonesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMilestones>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListMilestonesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listMilestones>>> = ({ signal }) => listMilestones(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listMilestones>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListMilestonesQueryResult = NonNullable<Awaited<ReturnType<typeof listMilestones>>>
+export type ListMilestonesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Milestones with their project and current-round approvers (dashboard queues)
+ */
+
+export function useListMilestones<TData = Awaited<ReturnType<typeof listMilestones>>, TError = ErrorType<unknown>>(
+ params?: ListMilestonesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMilestones>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListMilestonesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getListPendingMilestonesUrl = (params?: ListPendingMilestonesParams,) => {
   const normalizedParams = new URLSearchParams();
 
@@ -2751,6 +2839,160 @@ export function useListAnomalies<TData = Awaited<ReturnType<typeof listAnomalies
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getListAnomaliesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListRoleHoldersUrl = () => {
+
+
+
+
+  return `/api/roles`
+}
+
+/**
+ * @summary Role holders and ward scopes, indexed from NammaSevaAccess
+ */
+export const listRoleHolders = async ( options?: Parameters<typeof customFetch>[1]): Promise<RoleHolder[]> => {
+
+  return customFetch<RoleHolder[]>(getListRoleHoldersUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListRoleHoldersQueryKey = () => {
+    return [
+    `/api/roles`
+    ] as const;
+    }
+
+
+export const getListRoleHoldersQueryOptions = <TData = Awaited<ReturnType<typeof listRoleHolders>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listRoleHolders>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListRoleHoldersQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listRoleHolders>>> = ({ signal }) => listRoleHolders({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listRoleHolders>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListRoleHoldersQueryResult = NonNullable<Awaited<ReturnType<typeof listRoleHolders>>>
+export type ListRoleHoldersQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Role holders and ward scopes, indexed from NammaSevaAccess
+ */
+
+export function useListRoleHolders<TData = Awaited<ReturnType<typeof listRoleHolders>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listRoleHolders>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListRoleHoldersQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetDemoConfigUrl = () => {
+
+
+
+
+  return `/api/demo`
+}
+
+/**
+ * @summary Demo cast for the login screen (enabled only with NS_DEMO_MODE; never on mainnet)
+ */
+export const getDemoConfig = async ( options?: Parameters<typeof customFetch>[1]): Promise<DemoConfig> => {
+
+  return customFetch<DemoConfig>(getGetDemoConfigUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDemoConfigQueryKey = () => {
+    return [
+    `/api/demo`
+    ] as const;
+    }
+
+
+export const getGetDemoConfigQueryOptions = <TData = Awaited<ReturnType<typeof getDemoConfig>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDemoConfig>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDemoConfigQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDemoConfig>>> = ({ signal }) => getDemoConfig({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDemoConfig>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetDemoConfigQueryResult = NonNullable<Awaited<ReturnType<typeof getDemoConfig>>>
+export type GetDemoConfigQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Demo cast for the login screen (enabled only with NS_DEMO_MODE; never on mainnet)
+ */
+
+export function useGetDemoConfig<TData = Awaited<ReturnType<typeof getDemoConfig>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDemoConfig>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetDemoConfigQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

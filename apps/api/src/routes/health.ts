@@ -1,4 +1,5 @@
-import { departments, sql, wards } from "@namma-seva/db";
+import { departments, eq, pinnedMetadata, sql, wards } from "@namma-seva/db";
+import { canonicalJson } from "../lib/hash";
 import { Router, type IRouter } from "express";
 import type { AppContext } from "../context";
 import { indexerLag } from "../indexer/indexer";
@@ -64,14 +65,29 @@ export default function healthRoutes(ctx: AppContext): IRouter {
     }),
   );
 
-  /** Serves dev-store pins (LocalIpfs); production content comes from the Pinata gateway. */
-  router.get("/ipfs/:cid", (req, res, next) => {
-    const item = ctx.ipfs.get?.(req.params.cid);
-    if (!item) return next(notFound());
-    res.setHeader("content-type", item.mime);
-    res.setHeader("cache-control", "public, max-age=31536000, immutable");
-    res.send(Buffer.from(item.bytes));
-  });
+  /**
+   * Content by CID: dev-store pins (LocalIpfs), else metadata this API pinned (served from the DB as
+   * the exact canonical bytes). Photos under Pinata come from the IPFS gateway instead.
+   */
+  router.get(
+    "/ipfs/:cid",
+    handler(async (req, res) => {
+      const cid = String(req.params.cid);
+      res.setHeader("cache-control", "public, max-age=31536000, immutable");
+      // Pinned content is user-supplied: never let it run script or load anything (e.g. SVG).
+      res.setHeader("content-security-policy", "default-src 'none'; img-src data:; style-src 'unsafe-inline'; sandbox");
+      const item = ctx.ipfs.get?.(cid);
+      if (item) {
+        res.setHeader("content-type", item.mime);
+        res.send(Buffer.from(item.bytes));
+        return;
+      }
+      const [row] = await db.select({ body: pinnedMetadata.body }).from(pinnedMetadata).where(eq(pinnedMetadata.cid, cid));
+      if (!row) throw notFound();
+      res.setHeader("content-type", "application/json");
+      res.send(canonicalJson(row.body));
+    }),
+  );
 
   return router;
 }

@@ -97,6 +97,7 @@ export default function chainRoutes(ctx: AppContext): IRouter {
       if (q.contract) where.push(eq(chainEvents.contract, q.contract));
       if (q.eventName) where.push(eq(chainEvents.eventName, q.eventName));
       if (q.projectId !== undefined) where.push(sql`${chainEvents.args}->>'projectId' = ${String(q.projectId)}`);
+      if (q.txHash) where.push(eq(chainEvents.txHash, q.txHash.toLowerCase()));
       const filter = where.length ? and(...where) : undefined;
       const [items, [{ total }]] = await Promise.all([
         db

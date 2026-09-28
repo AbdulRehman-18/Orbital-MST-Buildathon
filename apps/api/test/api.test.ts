@@ -7,7 +7,7 @@ import { TokenService, type SessionUser } from "../src/auth/tokens";
 import { Indexer } from "../src/indexer/indexer";
 import { csvCell } from "../src/routes/chain";
 import { makeTestApp } from "./helpers/app";
-import { CONTRACTOR, OFFICIAL, seedLifecycle, ZERO } from "./helpers/fake-chain";
+import { CITIZEN_A, CITIZEN_B, CONTRACTOR, OFFICIAL, seedLifecycle, ZERO } from "./helpers/fake-chain";
 
 type T = Awaited<ReturnType<typeof makeTestApp>>;
 let t: T;
@@ -208,6 +208,97 @@ describe("tx tracking", () => {
     await request(t.app).get(`/api/tx/${hash.toLowerCase()}`).expect(200);
     await request(t.app).get(`/api/tx/0x${"00".repeat(32)}`).expect(404);
     expect(await t.db.select().from(pendingTxs)).toHaveLength(1);
+  });
+});
+
+describe("proof upload", () => {
+  const PNG = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+    "base64",
+  );
+
+  it("pins photos + proof.json and returns submitProof args; only the assigned contractor may upload", async () => {
+    seedLifecycle(t.chain!);
+    const c = t.chain!;
+    c.mine([c.ev("MilestoneEscrow", "MilestoneCreated", 2, 1, id("ms-2"), "bafyms2", 1_000_000n)]);
+    c.mineEmpty(6);
+    await index();
+
+    const contractor = await tokenFor({ role: "CONTRACTOR", roles: ["CONTRACTOR"], walletAddress: CONTRACTOR });
+    const res = await request(t.app)
+      .post("/api/milestones/2/proof/upload")
+      .set("authorization", `Bearer ${contractor}`)
+      .attach("photos", PNG, { filename: "site.png", contentType: "image/png" })
+      .field("latE6", "12971650")
+      .field("lngE6", "77594620")
+      .expect(201);
+    expect(res.body).toMatchObject({ milestoneId: 2, latE6: 12971650, lngE6: 77594620 });
+    expect(res.body.warnings).toEqual(["site.png: no EXIF GPS"]);
+    expect(res.body.media[0]).toMatchObject({ mime: "image/png", flagged: true });
+    const pinned = t.ctx.ipfs.get!(res.body.proofCID)!;
+    expect(keccak256(pinned.bytes)).toBe(res.body.proofHash);
+    const proof = await request(t.app).get("/api/milestones/2/proof").expect(200);
+    expect(proof.body).toHaveLength(1);
+
+    const other = await tokenFor({ role: "CONTRACTOR", roles: ["CONTRACTOR"], walletAddress: OFFICIAL });
+    await request(t.app)
+      .post("/api/milestones/2/proof/upload")
+      .set("authorization", `Bearer ${other}`)
+      .attach("photos", PNG, { filename: "site.png", contentType: "image/png" })
+      .expect(403);
+    // Milestone 1 is already PAID.
+    await request(t.app)
+      .post("/api/milestones/1/proof/upload")
+      .set("authorization", `Bearer ${contractor}`)
+      .attach("photos", PNG, { filename: "site.png", contentType: "image/png" })
+      .field("latE6", "12971650")
+      .field("lngE6", "77594620")
+      .expect(400);
+    await request(t.app)
+      .post("/api/milestones/2/proof/upload")
+      .set("authorization", `Bearer ${contractor}`)
+      .attach("photos", Buffer.from("<svg/>"), { filename: "x.svg", contentType: "image/svg+xml" })
+      .expect(400);
+  });
+});
+
+describe("demo endpoints", () => {
+  it("expose the demo cast only in demo mode, and the OTP code on screen", async () => {
+    const off = await request(t.app).get("/api/demo").expect(200);
+    expect(off.body).toMatchObject({ enabled: false, mnemonic: null, accounts: [] });
+    expect((await request(t.app).post("/api/auth/otp/send").send({ phone: "9000000001" }).expect(200)).body.devCode).toBeUndefined();
+
+    const demo = await makeTestApp({ NS_DEMO_MODE: "true" });
+    try {
+      const on = await request(demo.app).get("/api/demo").expect(200);
+      expect(on.body.enabled).toBe(true);
+      expect(on.body.accounts.map((a: { role: string }) => a.role)).toEqual(
+        expect.arrayContaining(["ADMIN", "GOVT_OFFICIAL", "AUDITOR", "CONTRACTOR"]),
+      );
+      expect(on.body.accounts.some((a: { role: string }) => a.role === "RELAYER")).toBe(false);
+      const sent = await request(demo.app).post("/api/auth/otp/send").send({ phone: "9000000001" }).expect(200);
+      expect(sent.body.devCode).toMatch(/^\d{6}$/);
+    } finally {
+      await demo.close();
+    }
+  });
+});
+
+describe("citizen grievance views", () => {
+  it("marks a signed-in citizen's own grievances and upvotes", async () => {
+    seedLifecycle(t.chain!);
+    t.chain!.mineEmpty(6);
+    await index();
+    const a = await tokenFor({ role: "CITIZEN", roles: ["CITIZEN"], citizenHash: CITIZEN_A });
+    const mine = await request(t.app).get("/api/grievances?mine=true").set("authorization", `Bearer ${a}`).expect(200);
+    expect(mine.body).toHaveLength(1);
+    expect(mine.body[0]).toMatchObject({ id: 1, mine: true, upvotedByMe: false });
+
+    const b = await tokenFor({ role: "CITIZEN", roles: ["CITIZEN"], citizenHash: CITIZEN_B });
+    const list = await request(t.app).get("/api/grievances?projectId=1").set("authorization", `Bearer ${b}`).expect(200);
+    expect(list.body[0]).toMatchObject({ mine: false, upvotedByMe: true });
+    const one = await request(t.app).get("/api/grievances/1").set("authorization", `Bearer ${b}`).expect(200);
+    expect(one.body.upvotedByMe).toBe(true);
   });
 });
 

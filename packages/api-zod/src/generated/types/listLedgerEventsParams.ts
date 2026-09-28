@@ -20,6 +20,7 @@ export type ListLedgerEventsParams = {
 contract?: string;
 eventName?: string;
 projectId?: number;
+txHash?: string;
 includePending?: boolean;
 /**
  * @minimum 1

@@ -74,7 +74,8 @@ export default function authRoutes(ctx: AppContext): IRouter {
       const hash = phoneHash(e164, config.auth.phonePepper);
       const result = await sendOtp(db, ctx.otp, e164, hash);
       if (!result.ok) throw tooMany("Too many codes requested — try again in an hour");
-      res.json({ sent: true, expiresIn: OTP_TTL_SECONDS });
+      // Demo mode shows the code on screen so anyone can try the citizen flow (never in production).
+      res.json({ sent: true, expiresIn: OTP_TTL_SECONDS, ...(config.demoMode ? { devCode: result.code } : {}) });
     }),
   );
 
