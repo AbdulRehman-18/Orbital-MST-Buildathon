@@ -13,16 +13,14 @@
  *
  * OpenAPI spec version: 0.3.0
  */
-import type { ProofUploadFormSource } from './proofUploadFormSource';
 
-export interface ProofUploadForm {
-  /** @maxItems 5 */
-  photos: (Blob | File)[];
-  /** Device GPS fix */
-  latE6?: number;
-  lngE6?: number;
-  /** @maxLength 1000 */
-  note?: string;
-  /** How the photo was captured. In strict mode anything but `camera` fails the capture check. */
-  source?: ProofUploadFormSource;
-}
+/**
+ * How the photo was captured. In strict mode anything but `camera` fails the capture check.
+ */
+export type ProofUploadFormSource = typeof ProofUploadFormSource[keyof typeof ProofUploadFormSource];
+
+
+export const ProofUploadFormSource = {
+  camera: 'camera',
+  gallery: 'gallery',
+} as const;

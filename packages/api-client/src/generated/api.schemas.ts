@@ -283,8 +283,9 @@ export type AnomalySeverity = typeof AnomalySeverity[keyof typeof AnomalySeverit
 
 
 export const AnomalySeverity = {
-  INFO: 'INFO',
-  WARNING: 'WARNING',
+  LOW: 'LOW',
+  MEDIUM: 'MEDIUM',
+  HIGH: 'HIGH',
   CRITICAL: 'CRITICAL',
 } as const;
 
@@ -469,6 +470,15 @@ export interface VerifyResult {
   block: number;
 }
 
+/**
+ * Integrity checks (`capture`, `geofence`, `time`, `duplicate`). A failed check flags the photo but never blocks submission.
+ * @nullable
+ */
+export type ProofMediaChecks = {[key: string]: {
+  ok: boolean;
+  detail?: string;
+}} | null;
+
 export interface ProofMedia {
   cid: string;
   sha256: string;
@@ -482,7 +492,25 @@ export interface ProofMedia {
   /** @nullable */
   gpsDistanceM: number | null;
   flagged: boolean;
+  /** @nullable */
+  thumbCid: string | null;
+  /**
+     * Integrity checks (`capture`, `geofence`, `time`, `duplicate`). A failed check flags the photo but never blocks submission.
+     * @nullable
+     */
+  checks: ProofMediaChecks;
 }
+
+/**
+ * How the photo was captured. In strict mode anything but `camera` fails the capture check.
+ */
+export type ProofUploadFormSource = typeof ProofUploadFormSource[keyof typeof ProofUploadFormSource];
+
+
+export const ProofUploadFormSource = {
+  camera: 'camera',
+  gallery: 'gallery',
+} as const;
 
 export interface ProofUploadForm {
   /** @maxItems 5 */
@@ -492,6 +520,8 @@ export interface ProofUploadForm {
   lngE6?: number;
   /** @maxLength 1000 */
   note?: string;
+  /** How the photo was captured. In strict mode anything but `camera` fails the capture check. */
+  source?: ProofUploadFormSource;
 }
 
 /**
@@ -813,6 +843,14 @@ export type MilestoneWithProject = Milestone & {
   project: MilestoneWithProjectProject;
 };
 
+export interface ResolveAnomalyRequest {
+  /**
+     * @minLength 1
+     * @maxLength 1000
+     */
+  note: string;
+}
+
 export type LimitParameter = number;
 
 export type OffsetParameter = number;
@@ -910,6 +948,10 @@ open?: boolean;
 };
 
 export type ExportProjectsCsvParams = {
+wardId?: number;
+};
+
+export type ExportProjectsJsonParams = {
 wardId?: number;
 };
 

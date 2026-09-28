@@ -72,6 +72,11 @@ export const proofMedia = pgTable(
     exifTime: tsz("exif_time"),
     gpsDistanceM: real("gps_distance_m"),
     flagged: boolean("flagged").notNull().default(false),
+    /** 64-bit perceptual hash (16 hex chars) of the image, for cross-milestone reuse detection. */
+    phash: text("phash"),
+    thumbCid: text("thumb_cid"),
+    /** Outcome of each integrity check, keyed by check name. */
+    checks: jsonb("checks").$type<Record<string, { ok: boolean; detail?: string }>>(),
     uploadedBy: address("uploaded_by"),
     createdAt: tsz("created_at").notNull().defaultNow(),
   },

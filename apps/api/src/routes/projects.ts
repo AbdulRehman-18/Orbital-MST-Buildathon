@@ -27,6 +27,7 @@ import {
 import { txUrl, addressUrl } from "@namma-seva/chain";
 import { Router, type IRouter } from "express";
 import { ZeroAddress } from "ethers";
+import { anomalyView, canSeeAnomalyDetails } from "../anomaly/view";
 import { requireAuth } from "../auth/middleware";
 import { PROJECT_CATEGORY } from "../chain/contracts";
 import type { AppContext } from "../context";
@@ -126,7 +127,10 @@ export default function projectRoutes(ctx: AppContext): IRouter {
         milestones: ms,
         grievanceCount,
         openTenderId: openTender?.id ?? null,
-        anomalies: flags,
+        // Public viewers only see that a project is "under review", never the rule or its details.
+        anomalies: canSeeAnomalyDetails(req)
+          ? flags
+          : flags.filter((f) => !f.resolvedAt).map((f) => anomalyView(f, false)),
         pendingEvents: pending,
       });
     }),

@@ -59,6 +59,10 @@ const Env = z.object({
 
   PINATA_JWT: optional,
   PINATA_GATEWAY: optional,
+  IPFS_BACKUP_PIN_URL: optional,
+  IPFS_BACKUP_PIN_TOKEN: optional,
+  /** Strict proof capture: reject-flag anything not taken with the in-app camera. */
+  PROOF_STRICT: z.string().optional().transform((v) => v === "true"),
 });
 
 export type Config = ReturnType<typeof loadConfig>;
@@ -139,6 +143,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
         twilioAccountSid: e.TWILIO_ACCOUNT_SID,
       },
     },
-    ipfs: { pinataJwt: e.PINATA_JWT, gateway: e.PINATA_GATEWAY },
+    ipfs: { pinataJwt: e.PINATA_JWT, gateway: e.PINATA_GATEWAY, backupUrl: e.IPFS_BACKUP_PIN_URL, backupToken: e.IPFS_BACKUP_PIN_TOKEN },
+    proofStrict: e.PROOF_STRICT,
   };
 }

@@ -1,5 +1,4 @@
-// Ported from DecentraliTrack's services/ipfsService.ts (Pinata). Redundant pinning, gateway
-// fallbacks and content re-verification are Phase 5 hardening.
+// Ported from DecentraliTrack's services/ipfsService.ts (Pinata). Redundant pinning is `RedundantIpfs`.
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -90,11 +89,92 @@ export class LocalIpfs implements IpfsService {
   }
 }
 
+/**
+ * Backup pin on a self-hosted Kubo (IPFS) node via its HTTP RPC (`/api/v0/add`). Only used as the
+ * second copy behind `RedundantIpfs`; the CID returned to callers always comes from the primary.
+ */
+export class KuboIpfs implements IpfsService {
+  readonly kind = "pinata" as const;
+
+  constructor(
+    private readonly apiUrl: string,
+    private readonly token: string | undefined,
+    private readonly logger: Logger,
+  ) {}
+
+  async pin(bytes: Uint8Array, name: string, mime: string): Promise<string> {
+    const form = new FormData();
+    form.append("file", new Blob([bytes], { type: mime }), name);
+    const url = `${this.apiUrl.replace(/\/$/, "")}/api/v0/add?cid-version=1&pin=true`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: this.token ? { Authorization: `Bearer ${this.token}` } : {},
+      body: form,
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!res.ok) {
+      this.logger.error({ status: res.status }, "Backup IPFS pin failed");
+      throw new Error(`Backup IPFS pin failed (${res.status})`);
+    }
+    return ((await res.json()) as { Hash: string }).Hash;
+  }
+
+  gatewayUrl(cid: string) {
+    return `${this.apiUrl.replace(/\/$/, "")}/ipfs/${cid}`;
+  }
+}
+
+/**
+ * Pins to the primary service and mirrors to a backup (plan §13.5). A backup failure is logged
+ * and never fails the upload; a primary failure does.
+ */
+export class RedundantIpfs implements IpfsService {
+  constructor(
+    private readonly primary: IpfsService,
+    private readonly backup: IpfsService,
+    private readonly logger: Logger,
+  ) {}
+
+  get kind() {
+    return this.primary.kind;
+  }
+
+  async pin(bytes: Uint8Array, name: string, mime: string): Promise<string> {
+    const cid = await this.primary.pin(bytes, name, mime);
+    try {
+      const mirrored = await this.backup.pin(bytes, name, mime);
+      if (mirrored !== cid) this.logger.warn({ cid, mirrored }, "Backup pin returned a different CID (chunking differs)");
+    } catch (err) {
+      this.logger.error({ cid, err: (err as Error).message }, "Backup pin failed — proof is pinned on the primary only");
+    }
+    return cid;
+  }
+
+  gatewayUrl(cid: string) {
+    return this.primary.gatewayUrl(cid);
+  }
+
+  get(cid: string) {
+    return this.primary.get?.(cid);
+  }
+}
+
 export function createIpfs(
-  opts: { pinataJwt?: string; gateway?: string; production: boolean; apiBaseUrl: string; localDir?: string },
+  opts: {
+    pinataJwt?: string;
+    gateway?: string;
+    backupUrl?: string;
+    backupToken?: string;
+    production: boolean;
+    apiBaseUrl: string;
+    localDir?: string;
+  },
   logger: Logger,
 ): IpfsService {
-  if (opts.pinataJwt) return new PinataIpfs(opts.pinataJwt, opts.gateway, logger);
+  if (opts.pinataJwt) {
+    const primary = new PinataIpfs(opts.pinataJwt, opts.gateway, logger);
+    return opts.backupUrl ? new RedundantIpfs(primary, new KuboIpfs(opts.backupUrl, opts.backupToken, logger), logger) : primary;
+  }
   if (opts.production) throw new Error("PINATA_JWT is required in production.");
   logger.warn({ dir: opts.localDir ?? "(memory)" }, "PINATA_JWT not set — using the local dev IPFS store");
   return new LocalIpfs(opts.apiBaseUrl, opts.localDir);

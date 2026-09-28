@@ -18,7 +18,8 @@ export type AnomalySeverity = typeof AnomalySeverity[keyof typeof AnomalySeverit
 
 
 export const AnomalySeverity = {
-  INFO: 'INFO',
-  WARNING: 'WARNING',
+  LOW: 'LOW',
+  MEDIUM: 'MEDIUM',
+  HIGH: 'HIGH',
   CRITICAL: 'CRITICAL',
 } as const;

@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import { Redis } from "ioredis";
 import { createApp } from "./app";
+import { startAnomalyEngine } from "./anomaly/engine";
 import { createOtpSender } from "./auth/otp";
 import { ChainRoleReader, type RoleReader } from "./auth/roles";
 import { TokenService } from "./auth/tokens";
@@ -79,6 +80,8 @@ const ctx: AppContext = {
     {
       pinataJwt: config.ipfs.pinataJwt,
       gateway: config.ipfs.gateway,
+      backupUrl: config.ipfs.backupUrl,
+      backupToken: config.ipfs.backupToken,
       production: config.production,
       apiBaseUrl: config.publicBaseUrl,
       localDir: devIpfsDir(),
@@ -90,6 +93,7 @@ const ctx: AppContext = {
   redis,
 };
 
+const stopAnomalyEngine = startAnomalyEngine(db, logger);
 const app = createApp(ctx);
 const server = createServer(app);
 const sockets = createSocketServer(server, config.corsOrigins, logger);
@@ -114,6 +118,7 @@ async function shutdown(signal: string) {
   server.close();
   await sockets.io.close();
   stopListening();
+  stopAnomalyEngine();
   await relayer?.close();
   await redis?.quit();
   await pool.end();
