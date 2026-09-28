@@ -1,22 +1,47 @@
+# Dependencies
 node_modules/
-dist/
-*.tsbuildinfo
-.vite/
-coverage/
+.pnpm-store/
 
-# env & secrets — never commit
+# Environment files and local secrets
 .env
 .env.*
 !.env.example
+!.env.sample
+*.pem
+*.key
 
-# hardhat
-packages/contracts/artifacts/
-packages/contracts/cache/
+# Build output
+dist/
+build/
+coverage/
+*.tsbuildinfo
+.vite/
+
+# Solidity / Foundry / Hardhat generated files
+artifacts/
+cache/
+out/
+broadcast/
+forge-cache/
 packages/contracts/types/
 packages/chain/deployments/localhost.json
 packages/chain/deployments/hardhat.json
 packages/contracts/deployments/localhost.json
 packages/contracts/deployments/hardhat.json
 
-.DS_Store
+# Logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Local analysis cache
+.fallow/
