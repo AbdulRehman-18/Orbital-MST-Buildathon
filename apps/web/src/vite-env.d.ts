@@ -6,6 +6,8 @@ interface ImportMetaEnv {
   readonly VITE_NS_EXPLORER_URL?: string;
   readonly VITE_NS_IPFS_GATEWAY?: string;
   readonly VITE_NS_WALLETCONNECT_PROJECT_ID?: string;
+  /** "off" replaces Socket.IO live updates with periodic refetching (serverless hosting). */
+  readonly VITE_NS_LIVE?: string;
 }
 
 interface ImportMeta {

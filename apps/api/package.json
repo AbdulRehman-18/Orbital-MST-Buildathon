@@ -24,6 +24,7 @@
     "@namma-seva/api-zod": "workspace:*",
     "@namma-seva/chain": "workspace:*",
     "@namma-seva/db": "workspace:*",
+    "@vercel/functions": "^3.9.9",
     "bullmq": "^6.3.9",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",

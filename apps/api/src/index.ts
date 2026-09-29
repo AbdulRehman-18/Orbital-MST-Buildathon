@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import { waitUntil } from "@vercel/functions";
 import { Redis } from "ioredis";
 import { createApp } from "./app";
 import { startAnomalyEngine } from "./anomaly/engine";
@@ -8,6 +9,7 @@ import { TokenService } from "./auth/tokens";
 import { loadConfig } from "./config";
 import type { AppContext } from "./context";
 import { demoAccount, demoWallet } from "./demo/accounts";
+import { createInlineIndexer } from "./indexer/inline";
 import { createIpfs, devIpfsDir } from "./ipfs/ipfs";
 import { logger } from "./lib/logger";
 import { BullJobQueue, MemoryJobQueue } from "./relayer/queue";
@@ -109,7 +111,13 @@ const ctx: AppContext = {
 const stopAnomalyEngine = startAnomalyEngine(db, logger);
 const stopRetention = startRetentionJob(db, logger, config.auditLogRetentionDays);
 const app = createApp(ctx);
-const server = createServer(app);
+// Vercel runs no separate indexer process: requests drive background ticks instead.
+const pokeIndexer = process.env.VERCEL && chain ? createInlineIndexer(config, pool, db, chain, logger) : undefined;
+const server = createServer((req, res) => {
+  const tick = pokeIndexer?.();
+  if (tick) waitUntil(tick);
+  app(req, res);
+});
 const sockets = createSocketServer(server, config.corsOrigins, logger);
 const stopListening = await sockets.listen(pool);
 

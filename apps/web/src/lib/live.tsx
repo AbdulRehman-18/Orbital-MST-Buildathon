@@ -16,8 +16,12 @@ export function LiveUpdatesProvider({ children }: { children: ReactNode }) {
   const [head, setHead] = useState<Live["head"]>(null);
 
   useEffect(() => {
-    // tryAllTransports: hosts that proxy /api without WebSocket upgrades (Vercel rewrites) fall back to polling.
-    const socket = io({ path: "/api/socket.io", transports: ["websocket", "polling"], tryAllTransports: true });
+    // Serverless hosts (Vercel) can't keep a socket open: refetch on a timer instead.
+    if (import.meta.env.VITE_NS_LIVE === "off") {
+      const poll = setInterval(() => void queryClient.invalidateQueries(), 15_000);
+      return () => clearInterval(poll);
+    }
+    const socket = io({ path: "/api/socket.io", transports: ["websocket", "polling"] });
     let timer: ReturnType<typeof setTimeout> | undefined;
     // Coalesce bursts (one block can touch many entities) into a single refetch.
     const invalidate = () => {
