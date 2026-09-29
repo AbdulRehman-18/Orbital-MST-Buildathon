@@ -63,7 +63,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Roll the stack (migrate → api → indexer → web)
-        uses: appleboy/ssh-action@v1.2.0
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.DEV_SSH_HOST }}
           username: ${{ secrets.DEV_SSH_USER }}
