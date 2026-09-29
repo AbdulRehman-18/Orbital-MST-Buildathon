@@ -751,6 +751,21 @@ components:
           type: array
           items: { $ref: "#/components/schemas/DemoCitizen" }
       required: [enabled, mnemonic, chainId, accounts, citizens]
+    AccountProfile:
+      type: object
+      description: Public display name for a wallet (a contractor firm, an office), set by an admin.
+      properties:
+        address: { type: string }
+        name: { type: string }
+        title: { type: [string, "null"] }
+        updatedAt: { type: string, format: date-time }
+      required: [address, name, title, updatedAt]
+    AccountProfileInput:
+      type: object
+      properties:
+        name: { type: string, minLength: 2, maxLength: 80 }
+        title: { type: [string, "null"], maxLength: 120 }
+      required: [name]
     RoleHolder:
       type: object
       properties:
@@ -1480,6 +1495,48 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
 
+  /profiles:
+    get:
+      operationId: listProfiles
+      tags: [chain]
+      summary: Display names for wallets (shown instead of raw addresses)
+      responses:
+        "200":
+          description: Profiles
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AccountProfile" }
+  /profiles/{address}:
+    put:
+      operationId: setProfile
+      tags: [chain]
+      security: [{ bearer: [] }]
+      summary: ADMIN — set the display name of a wallet
+      parameters:
+        - { name: address, in: path, required: true, schema: { type: string, pattern: "^0x[0-9a-fA-F]{40}$" } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AccountProfileInput" }
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AccountProfile" }
+    delete:
+      operationId: deleteProfile
+      tags: [chain]
+      security: [{ bearer: [] }]
+      summary: ADMIN — remove a wallet's display name
+      parameters:
+        - { name: address, in: path, required: true, schema: { type: string, pattern: "^0x[0-9a-fA-F]{40}$" } }
+      responses:
+        "204":
+          description: Removed
   /roles:
     get:
       operationId: listRoleHolders

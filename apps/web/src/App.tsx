@@ -9,6 +9,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { queryClient } from "@/lib/api";
 import { AuthProvider } from "@/lib/auth";
+import { LiveUpdatesProvider } from "@/lib/live";
 import { wagmiConfig } from "@/lib/wagmi";
 import HomePage from "@/pages/home";
 
@@ -72,10 +73,12 @@ export default function App() {
       <WagmiProvider config={wagmiConfig}>
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
+            <LiveUpdatesProvider>
             <TooltipProvider>
               <Routes />
               <Toaster position="top-center" />
             </TooltipProvider>
+          </LiveUpdatesProvider>
           </AuthProvider>
         </QueryClientProvider>
       </WagmiProvider>

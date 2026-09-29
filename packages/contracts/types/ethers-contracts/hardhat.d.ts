@@ -14,69 +14,69 @@ declare module "@nomicfoundation/hardhat-ethers/types" {
 getContractFactory(name: 'MilestoneEscrow', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.MilestoneEscrow__factory>
 getContractFactory(name: 'NammaSevaAccess', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.NammaSevaAccess__factory>
 getContractFactory(name: 'NammaSevaBase', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.NammaSevaBase__factory>
-getContractFactory(name: 'ProjectRegistry', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.ProjectRegistry__factory>
 getContractFactory(name: 'TenderRegistry', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.TenderRegistry__factory>
 getContractFactory(name: 'NammaSevaTimelock', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.NammaSevaTimelock__factory>
 getContractFactory(name: 'TrustedForwarder', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.TrustedForwarder__factory>
 getContractFactory(name: 'NammaSevaMultisig', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.NammaSevaMultisig__factory>
-getContractFactory(name: 'IMilestoneEscrow', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IMilestoneEscrow__factory>
-getContractFactory(name: 'ITenderRegistry', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.ITenderRegistry__factory>
-getContractFactory(name: 'LegacyMilestoneEscrow', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.LegacyMilestoneEscrow__factory>
+getContractFactory(name: 'ProjectRegistry', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.ProjectRegistry__factory>
 getContractFactory(name: 'LegacyProjectRegistry', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.LegacyProjectRegistry__factory>
-getContractFactory(name: 'IProjectRegistry', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IProjectRegistry__factory>
-getContractFactory(name: 'RejectingReceiver', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.RejectingReceiver__factory>
+getContractFactory(name: 'LegacyMilestoneEscrow', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.LegacyMilestoneEscrow__factory>
 getContractFactory(name: 'LegacyRoleManager', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.LegacyRoleManager__factory>
+getContractFactory(name: 'RejectingReceiver', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.RejectingReceiver__factory>
+getContractFactory(name: 'IProjectRegistry', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IProjectRegistry__factory>
+getContractFactory(name: 'ITenderRegistry', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.ITenderRegistry__factory>
+getContractFactory(name: 'IMilestoneEscrow', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IMilestoneEscrow__factory>
 
   getContractAt(name: 'GrievanceRegistry', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.GrievanceRegistry>
 getContractAt(name: 'MilestoneEscrow', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.MilestoneEscrow>
 getContractAt(name: 'NammaSevaAccess', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.NammaSevaAccess>
 getContractAt(name: 'NammaSevaBase', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.NammaSevaBase>
-getContractAt(name: 'ProjectRegistry', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.ProjectRegistry>
 getContractAt(name: 'TenderRegistry', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.TenderRegistry>
 getContractAt(name: 'NammaSevaTimelock', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.NammaSevaTimelock>
 getContractAt(name: 'TrustedForwarder', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.TrustedForwarder>
 getContractAt(name: 'NammaSevaMultisig', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.NammaSevaMultisig>
-getContractAt(name: 'IMilestoneEscrow', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IMilestoneEscrow>
-getContractAt(name: 'ITenderRegistry', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.ITenderRegistry>
-getContractAt(name: 'LegacyMilestoneEscrow', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.LegacyMilestoneEscrow>
+getContractAt(name: 'ProjectRegistry', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.ProjectRegistry>
 getContractAt(name: 'LegacyProjectRegistry', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.LegacyProjectRegistry>
-getContractAt(name: 'IProjectRegistry', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IProjectRegistry>
-getContractAt(name: 'RejectingReceiver', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.RejectingReceiver>
+getContractAt(name: 'LegacyMilestoneEscrow', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.LegacyMilestoneEscrow>
 getContractAt(name: 'LegacyRoleManager', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.LegacyRoleManager>
+getContractAt(name: 'RejectingReceiver', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.RejectingReceiver>
+getContractAt(name: 'IProjectRegistry', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IProjectRegistry>
+getContractAt(name: 'ITenderRegistry', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.ITenderRegistry>
+getContractAt(name: 'IMilestoneEscrow', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IMilestoneEscrow>
 
   deployContract(name: 'GrievanceRegistry', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.GrievanceRegistry>
 deployContract(name: 'MilestoneEscrow', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.MilestoneEscrow>
 deployContract(name: 'NammaSevaAccess', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.NammaSevaAccess>
 deployContract(name: 'NammaSevaBase', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.NammaSevaBase>
-deployContract(name: 'ProjectRegistry', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ProjectRegistry>
 deployContract(name: 'TenderRegistry', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.TenderRegistry>
 deployContract(name: 'NammaSevaTimelock', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.NammaSevaTimelock>
 deployContract(name: 'TrustedForwarder', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.TrustedForwarder>
 deployContract(name: 'NammaSevaMultisig', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.NammaSevaMultisig>
-deployContract(name: 'IMilestoneEscrow', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IMilestoneEscrow>
-deployContract(name: 'ITenderRegistry', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ITenderRegistry>
-deployContract(name: 'LegacyMilestoneEscrow', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.LegacyMilestoneEscrow>
+deployContract(name: 'ProjectRegistry', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ProjectRegistry>
 deployContract(name: 'LegacyProjectRegistry', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.LegacyProjectRegistry>
-deployContract(name: 'IProjectRegistry', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IProjectRegistry>
-deployContract(name: 'RejectingReceiver', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.RejectingReceiver>
+deployContract(name: 'LegacyMilestoneEscrow', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.LegacyMilestoneEscrow>
 deployContract(name: 'LegacyRoleManager', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.LegacyRoleManager>
+deployContract(name: 'RejectingReceiver', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.RejectingReceiver>
+deployContract(name: 'IProjectRegistry', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IProjectRegistry>
+deployContract(name: 'ITenderRegistry', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ITenderRegistry>
+deployContract(name: 'IMilestoneEscrow', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IMilestoneEscrow>
 
   deployContract(name: 'GrievanceRegistry', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.GrievanceRegistry>
 deployContract(name: 'MilestoneEscrow', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.MilestoneEscrow>
 deployContract(name: 'NammaSevaAccess', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.NammaSevaAccess>
 deployContract(name: 'NammaSevaBase', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.NammaSevaBase>
-deployContract(name: 'ProjectRegistry', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ProjectRegistry>
 deployContract(name: 'TenderRegistry', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.TenderRegistry>
 deployContract(name: 'NammaSevaTimelock', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.NammaSevaTimelock>
 deployContract(name: 'TrustedForwarder', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.TrustedForwarder>
 deployContract(name: 'NammaSevaMultisig', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.NammaSevaMultisig>
-deployContract(name: 'IMilestoneEscrow', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IMilestoneEscrow>
-deployContract(name: 'ITenderRegistry', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ITenderRegistry>
-deployContract(name: 'LegacyMilestoneEscrow', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.LegacyMilestoneEscrow>
+deployContract(name: 'ProjectRegistry', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ProjectRegistry>
 deployContract(name: 'LegacyProjectRegistry', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.LegacyProjectRegistry>
-deployContract(name: 'IProjectRegistry', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IProjectRegistry>
-deployContract(name: 'RejectingReceiver', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.RejectingReceiver>
+deployContract(name: 'LegacyMilestoneEscrow', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.LegacyMilestoneEscrow>
 deployContract(name: 'LegacyRoleManager', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.LegacyRoleManager>
+deployContract(name: 'RejectingReceiver', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.RejectingReceiver>
+deployContract(name: 'IProjectRegistry', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IProjectRegistry>
+deployContract(name: 'ITenderRegistry', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ITenderRegistry>
+deployContract(name: 'IMilestoneEscrow', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IMilestoneEscrow>
 
     // default types
     getContractFactory(

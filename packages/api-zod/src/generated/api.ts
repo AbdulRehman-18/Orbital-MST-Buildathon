@@ -1121,6 +1121,61 @@ export const ResolveAnomalyResponse = zod.object({
 
 
 /**
+ * @summary Display names for wallets (shown instead of raw addresses)
+ */
+export const ListProfilesResponseItem = zod.object({
+  "address": zod.string(),
+  "name": zod.string(),
+  "title": zod.string().nullable(),
+  "updatedAt": zod.coerce.date()
+}).describe('Public display name for a wallet (a contractor firm, an office), set by an admin.')
+export const ListProfilesResponse = zod.array(ListProfilesResponseItem)
+
+
+/**
+ * @summary ADMIN — set the display name of a wallet
+ */
+export const setProfilePathAddressRegExp = new RegExp('^0x[0-9a-fA-F]{40}$');
+
+
+export const SetProfileParams = zod.object({
+  "address": zod.coerce.string().regex(setProfilePathAddressRegExp)
+})
+
+export const setProfileBodyNameMin = 2;
+export const setProfileBodyNameMax = 80;
+
+export const setProfileBodyTitleMax = 120;
+
+
+
+export const SetProfileBody = zod.object({
+  "name": zod.string().min(setProfileBodyNameMin).max(setProfileBodyNameMax),
+  "title": zod.string().max(setProfileBodyTitleMax).nullish()
+})
+
+export const SetProfileResponse = zod.object({
+  "address": zod.string(),
+  "name": zod.string(),
+  "title": zod.string().nullable(),
+  "updatedAt": zod.coerce.date()
+}).describe('Public display name for a wallet (a contractor firm, an office), set by an admin.')
+
+
+/**
+ * @summary ADMIN — remove a wallet's display name
+ */
+export const deleteProfilePathAddressRegExp = new RegExp('^0x[0-9a-fA-F]{40}$');
+
+
+export const DeleteProfileParams = zod.object({
+  "address": zod.coerce.string().regex(deleteProfilePathAddressRegExp)
+})
+
+export const DeleteProfileResponse = zod.void()
+
+
+/**
  * @summary Role holders and ward scopes, indexed from NammaSevaAccess
  */
 export const ListRoleHoldersResponseItem = zod.object({

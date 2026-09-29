@@ -1009,6 +1009,30 @@ export interface DemoConfig {
   citizens: DemoCitizen[];
 }
 
+/**
+ * Public display name for a wallet (a contractor firm, an office), set by an admin.
+ */
+export interface AccountProfile {
+  address: string;
+  name: string;
+  /** @nullable */
+  title: string | null;
+  updatedAt: string;
+}
+
+export interface AccountProfileInput {
+  /**
+     * @minLength 2
+     * @maxLength 80
+     */
+  name: string;
+  /**
+     * @maxLength 120
+     * @nullable
+     */
+  title?: string | null;
+}
+
 export interface RoleHolder {
   address: string;
   roles: string[];

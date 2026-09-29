@@ -7,7 +7,7 @@ import {
   projectRegistryAbi,
   tenderRegistryAbi,
 } from "@namma-seva/chain";
-import { trackTx } from "@namma-seva/api-client";
+import { getTrackedTx, trackTx } from "@namma-seva/api-client";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -48,6 +48,21 @@ export function txError(err: unknown): string {
   return errorMessage(err);
 }
 
+/** Poll /api/tx/:hash until the indexer has confirmed the tx (≤ 3 min), then refresh all queries. */
+async function followIndexing(hash: string, onIndexed: () => void) {
+  for (let i = 0; i < 60; i++) {
+    await new Promise((r) => setTimeout(r, 3000));
+    const tx = await getTrackedTx(hash).catch(() => null);
+    if (tx?.status === "confirmed") {
+      await queryClient.invalidateQueries();
+      onIndexed();
+      return;
+    }
+    if (tx?.status === "failed" || tx?.status === "dropped") return;
+  }
+  void queryClient.invalidateQueries();
+}
+
 export function useChainTx() {
   const { t } = useTranslation();
   const status = useChainStatus();
@@ -85,8 +100,14 @@ export function useChainTx() {
         description: t("tx.indexing"),
         action: url ? { label: t("tx.view"), onClick: () => window.open(url, "_blank", "noopener") } : undefined,
       });
-      // The indexer confirms after CONFIRMATIONS blocks; live updates also invalidate.
-      for (const delay of [1500, 5000, 12000]) setTimeout(() => void queryClient.invalidateQueries(), delay);
+      // Dashboards read the indexed database, which lags the chain by CONFIRMATIONS blocks (~20 s on
+      // MST). Follow the tracked tx until the indexer has it, then refresh (the socket does too).
+      void followIndexing(hash, () =>
+        toast.success(t("tx.indexed", { action: req.label }), {
+          id,
+          action: url ? { label: t("tx.view"), onClick: () => window.open(url, "_blank", "noopener") } : undefined,
+        }),
+      );
       return hash;
     } catch (err) {
       const reason = txError(err);

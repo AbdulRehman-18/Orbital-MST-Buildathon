@@ -14,12 +14,14 @@ import {
 import { useDemo } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { shortAddress } from "@/lib/format";
+import { useNameOf } from "@/lib/names";
 import { ROLE_ICON, workspacesFor } from "./nav";
 
 export function UserMenu() {
   const { t } = useTranslation();
   const { user, status, demoKey, displayName, signOut } = useAuth();
   const demo = useDemo();
+  const nameOf = useNameOf();
   const [, navigate] = useLocation();
 
   if (status !== "signed-in" || !user) {
@@ -33,7 +35,7 @@ export function UserMenu() {
   }
 
   const demoAccount = demo.data?.accounts.find((a) => a.key === demoKey);
-  const name = demoAccount?.name ?? displayName ?? (user.role === "CITIZEN" ? t("roles.CITIZEN") : shortAddress(user.walletAddress));
+  const name = demoAccount?.name ?? nameOf(user.walletAddress)?.name ?? displayName ?? (user.role === "CITIZEN" ? t("roles.CITIZEN") : shortAddress(user.walletAddress));
   const Icon = ROLE_ICON[user.role];
   const initials = name.replace(/[^A-Za-z ]/g, "").split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "NS";
 

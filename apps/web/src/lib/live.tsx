@@ -1,14 +1,19 @@
 // Live updates (ported from DecentraliTrack's use-live-updates.ts): the indexer publishes over
 // Postgres NOTIFY, the API relays over Socket.IO, and we invalidate TanStack Query caches.
-import { useEffect, useState } from "react";
+// Mounted once at the app root so every page refreshes, whatever the layout renders.
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { io } from "socket.io-client";
 import { queryClient } from "./api";
 
 const ENTITY_EVENTS = ["project:updated", "milestone:updated", "grievance:updated", "tender:updated", "role:updated", "chain:reorg"];
 
-export function useLiveUpdates() {
+type Live = { connected: boolean; head: { head: number; indexed: number } | null };
+
+const LiveContext = createContext<Live>({ connected: false, head: null });
+
+export function LiveUpdatesProvider({ children }: { children: ReactNode }) {
   const [connected, setConnected] = useState(false);
-  const [head, setHead] = useState<{ head: number; indexed: number } | null>(null);
+  const [head, setHead] = useState<Live["head"]>(null);
 
   useEffect(() => {
     const socket = io({ path: "/api/socket.io", transports: ["websocket", "polling"] });
@@ -21,6 +26,8 @@ export function useLiveUpdates() {
     socket.on("connect", () => {
       setConnected(true);
       socket.emit("subscribe", "ledger");
+      // Anything indexed while we were disconnected.
+      invalidate();
     });
     socket.on("disconnect", () => setConnected(false));
     for (const e of ENTITY_EVENTS) socket.on(e, invalidate);
@@ -32,5 +39,8 @@ export function useLiveUpdates() {
     };
   }, []);
 
-  return { connected, head };
+  return <LiveContext.Provider value={{ connected, head }}>{children}</LiveContext.Provider>;
 }
+
+/** Live socket state (connection + latest head/indexed block). */
+export const useLiveUpdates = () => useContext(LiveContext);

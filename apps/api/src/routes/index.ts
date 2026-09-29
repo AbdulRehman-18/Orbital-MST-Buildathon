@@ -7,6 +7,7 @@ import grievanceRoutes from "./grievances";
 import healthRoutes from "./health";
 import milestoneRoutes from "./milestones";
 import privacyRoutes from "./privacy";
+import profileRoutes from "./profiles";
 import projectRoutes from "./projects";
 import tenderRoutes from "./tenders";
 import transparencyRoutes from "./transparency";
@@ -23,6 +24,7 @@ export default function routes(ctx: AppContext): IRouter {
   router.use(tenderRoutes(ctx));
   router.use(chainRoutes(ctx));
   router.use(privacyRoutes(ctx));
+  router.use(profileRoutes(ctx));
   router.use(transparencyRoutes(ctx));
   router.use(demoRoutes(ctx));
   return router;

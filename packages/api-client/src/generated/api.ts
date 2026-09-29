@@ -28,6 +28,8 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AccountProfile,
+  AccountProfileInput,
   Anomaly,
   AuthTokens,
   ChainEventPage,
@@ -3177,6 +3179,246 @@ export const useResolveAnomaly = <TError = ErrorType<Error>,
         TContext
       > => {
       return useMutation(getResolveAnomalyMutationOptions(options));
+    }
+
+export const getListProfilesUrl = () => {
+
+
+
+
+  return `/api/profiles`
+}
+
+/**
+ * @summary Display names for wallets (shown instead of raw addresses)
+ */
+export const listProfiles = async ( options?: Parameters<typeof customFetch>[1]): Promise<AccountProfile[]> => {
+
+  return customFetch<AccountProfile[]>(getListProfilesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListProfilesQueryKey = () => {
+    return [
+    `/api/profiles`
+    ] as const;
+    }
+
+
+export const getListProfilesQueryOptions = <TData = Awaited<ReturnType<typeof listProfiles>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listProfiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListProfilesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listProfiles>>> = ({ signal }) => listProfiles({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listProfiles>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListProfilesQueryResult = NonNullable<Awaited<ReturnType<typeof listProfiles>>>
+export type ListProfilesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Display names for wallets (shown instead of raw addresses)
+ */
+
+export function useListProfiles<TData = Awaited<ReturnType<typeof listProfiles>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listProfiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListProfilesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSetProfileUrl = (address: string,) => {
+
+
+
+
+  return `/api/profiles/${address}`
+}
+
+/**
+ * @summary ADMIN — set the display name of a wallet
+ */
+export const setProfile = async (address: string,
+    accountProfileInput: AccountProfileInput, options?: Parameters<typeof customFetch>[1]): Promise<AccountProfile> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<AccountProfile>(getSetProfileUrl(address),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(accountProfileInput)
+  }
+);}
+
+
+
+
+
+export const getSetProfileMutationKey = () => ['setProfile'] as const;
+
+export const getSetProfileMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setProfile>>, TError,SetProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setProfile>>, TError,SetProfileMutationVariables, TContext> => {
+
+const mutationKey = getSetProfileMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setProfile>>, SetProfileMutationVariables> = (props) => {
+          const {address,data} = props ?? {};
+
+          return  setProfile(address,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetProfileMutationResult = NonNullable<Awaited<ReturnType<typeof setProfile>>>
+    export type SetProfileMutationBody = BodyType<AccountProfileInput>
+    export type SetProfileMutationError = ErrorType<unknown>
+    export type SetProfileMutationVariables = {address: string;data: BodyType<AccountProfileInput>}
+
+    /**
+ * @summary ADMIN — set the display name of a wallet
+ */
+export const useSetProfile = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setProfile>>, TError,SetProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof setProfile>>,
+        TError,
+        SetProfileMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSetProfileMutationOptions(options));
+    }
+
+export const getDeleteProfileUrl = (address: string,) => {
+
+
+
+
+  return `/api/profiles/${address}`
+}
+
+/**
+ * @summary ADMIN — remove a wallet's display name
+ */
+export const deleteProfile = async (address: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteProfileUrl(address),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteProfileMutationKey = () => ['deleteProfile'] as const;
+
+export const getDeleteProfileMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteProfile>>, TError,DeleteProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteProfile>>, TError,DeleteProfileMutationVariables, TContext> => {
+
+const mutationKey = getDeleteProfileMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteProfile>>, DeleteProfileMutationVariables> = (props) => {
+          const {address} = props ?? {};
+
+          return  deleteProfile(address,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteProfileMutationResult = NonNullable<Awaited<ReturnType<typeof deleteProfile>>>
+
+    export type DeleteProfileMutationError = ErrorType<unknown>
+    export type DeleteProfileMutationVariables = {address: string}
+
+    /**
+ * @summary ADMIN — remove a wallet's display name
+ */
+export const useDeleteProfile = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteProfile>>, TError,DeleteProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteProfile>>,
+        TError,
+        DeleteProfileMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteProfileMutationOptions(options));
     }
 
 export const getListRoleHoldersUrl = () => {

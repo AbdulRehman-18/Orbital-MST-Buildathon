@@ -1,10 +1,14 @@
-import { getReady, listRoleHolders, type ReadyCheck } from "@namma-seva/api-client";
+import { getListProfilesQueryKey, getReady, listRoleHolders, setProfile, type ReadyCheck } from "@namma-seva/api-client";
+import { toast } from "sonner";
+import { queryClient } from "@/lib/api";
+import { useNameOf } from "@/lib/names";
 import {
   Activity,
   CheckCircle2,
   Database,
   Fuel,
   KeyRound,
+  Pencil,
   LayoutDashboard,
   Server,
   UserMinus,
@@ -253,6 +257,7 @@ function Admin() {
                       {h.allWards ? t("common.allWards") : h.wards.join(", ") || "—"}
                     </TableCell>
                     <TableCell className="text-right">
+                      <NameButton address={h.address} />
                       {h.roles
                         .filter((r) => r !== "ADMIN" && h.address !== user?.walletAddress)
                         .map((r) => (
@@ -287,6 +292,53 @@ function Admin() {
   );
 }
 
+/** Save a wallet's public display name (admin only), then refresh every name on screen. */
+async function saveName(address: string, name: string, title: string) {
+  await setProfile(address, { name: name.trim(), title: title.trim() || null });
+  await queryClient.invalidateQueries({ queryKey: getListProfilesQueryKey() });
+}
+
+function NameButton({ address }: { address: string }) {
+  const { t } = useTranslation();
+  const current = useNameOf()(address);
+  const [name, setName] = useState("");
+  const [title, setTitle] = useState("");
+  return (
+    <ActionDialog
+      trigger={(open) => (
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => {
+            setName(current?.name ?? "");
+            setTitle(current?.title ?? "");
+            open();
+          }}
+        >
+          <Pencil /> {t("admin.setName")}
+        </Button>
+      )}
+      title={t("admin.nameTitle")}
+      description={t("admin.nameBody")}
+      submitLabel={t("common.save")}
+      disabled={name.trim().length < 2}
+      onSubmit={async () => {
+        await saveName(address, name, title);
+        toast.success(t("admin.nameSaved"));
+        return true;
+      }}
+    >
+      <p className="text-muted-foreground font-mono text-xs break-all">{address}</p>
+      <Field label={t("admin.nameLabel")}>
+        <Input value={name} onChange={(e) => setName(e.target.value.slice(0, 80))} placeholder="Sri Ganesh Constructions" />
+      </Field>
+      <Field label={t("admin.titleLabel")}>
+        <Input value={title} onChange={(e) => setTitle(e.target.value.slice(0, 120))} placeholder="Class-I civil contractor" />
+      </Field>
+    </ActionDialog>
+  );
+}
+
 function GrantDialog() {
   const { t } = useTranslation();
   const { send } = useChainTx();
@@ -294,6 +346,7 @@ function GrantDialog() {
   const [role, setRole] = useState<string>("GOVT_OFFICIAL");
   const [wards, setWards] = useState("");
   const [all, setAll] = useState(false);
+  const [name, setName] = useState("");
   const wardIds = wards
     .split(",")
     .map((w) => Number(w.trim()))
@@ -320,6 +373,7 @@ function GrantDialog() {
           entityId: address,
         });
         if (!ok) return false;
+        if (name.trim().length >= 2) await saveName(address, name, "");
         const scope = all ? [ALL_WARDS] : wardIds;
         if (scope.length) {
           await send({
@@ -341,6 +395,9 @@ function GrantDialog() {
           placeholder="0x…"
           className="font-mono"
         />
+      </Field>
+      <Field label={t("admin.nameLabel")} hint={t("admin.nameHint")}>
+        <Input value={name} onChange={(e) => setName(e.target.value.slice(0, 80))} placeholder="Sri Ganesh Constructions" />
       </Field>
       <Field label={t("common.role")}>
         <Select value={role} onValueChange={setRole}>

@@ -1,0 +1,11 @@
+mst testnet
+
+deployer - account 2
+deployer address - 0xEa997b29028Bd78be6205d809c750924a55053ad
+
+NammaSevaAccess  -  0x666ED55a69b14C4E68ef881EbE56C48d2d34db00
+TrustedForwarder -  0xa2cA8631e45a889b4729b295bfe3C11E9bD14723
+ProjectRegistry  -  0xC466a4972f052546ACad1d05ED03882C18c2cf55
+MilestoneEscrow -  0x037d4233B56DaCfD4Da675A2163b8f9F36C18975
+GrievanceRegistry -  0x74DA890dd64b2A2b160131D5cbA0B9403b6C4bfE
+TenderRegistry  -   0xCee0537f99e52d1fC2ff725d7c7D99244c499F17

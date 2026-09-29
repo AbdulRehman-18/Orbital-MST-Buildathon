@@ -14,7 +14,41 @@ export type Deployment = {
   contracts: Partial<Record<ContractName, { address: `0x${string}`; implementation?: `0x${string}` }>>;
 };
 
-export const DEPLOYMENTS: Record<string, Deployment> = {};
+export const DEPLOYMENTS: Record<string, Deployment> = {
+  "mstTestnet": {
+    "network": "mstTestnet",
+    "chainId": 91562037,
+    "blockNumber": 5798189,
+    "commit": "4526c4d2a819e577ac8a3795bba692cc8b6f13f1-dirty",
+    "deployedAt": "2026-09-29T02:45:03.321Z",
+    "deployer": "0xEa997b29028Bd78be6205d809c750924a55053ad",
+    "mode": "ESCROW",
+    "contracts": {
+      "NammaSevaAccess": {
+        "address": "0x666ED55a69b14C4E68ef881EbE56C48d2d34db00"
+      },
+      "TrustedForwarder": {
+        "address": "0xa2cA8631e45a889b4729b295bfe3C11E9bD14723"
+      },
+      "ProjectRegistry": {
+        "address": "0xC466a4972f052546ACad1d05ED03882C18c2cf55",
+        "implementation": "0x8E57d903f2ef234E172875c939B90F524F6BEa6a"
+      },
+      "MilestoneEscrow": {
+        "address": "0x037d4233B56DaCfD4Da675A2163b8f9F36C18975",
+        "implementation": "0xc1D2aC32445288662a7a1509Ed212947198CA937"
+      },
+      "GrievanceRegistry": {
+        "address": "0x74DA890dd64b2A2b160131D5cbA0B9403b6C4bfE",
+        "implementation": "0xF0A58b5d987eeB39951a622c805e60dff072a0B4"
+      },
+      "TenderRegistry": {
+        "address": "0xCee0537f99e52d1fC2ff725d7c7D99244c499F17",
+        "implementation": "0x2d813D49b6d88dE199502735B7cd9Ce91C8acE18"
+      }
+    }
+  }
+};
 
 /** Deployment manifest for a network name, or undefined if not deployed there. */
 export function getDeployment(network: string): Deployment | undefined {

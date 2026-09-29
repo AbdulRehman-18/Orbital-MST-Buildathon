@@ -1,0 +1,1244 @@
+{
+  "manifestVersion": "3.2",
+  "proxies": [
+    {
+      "address": "0xC466a4972f052546ACad1d05ED03882C18c2cf55",
+      "txHash": "0xa73d9ba9a8daccf1695ee6e847ff146b0750ee162da776748ce28b6a5283c216",
+      "kind": "uups"
+    },
+    {
+      "address": "0x037d4233B56DaCfD4Da675A2163b8f9F36C18975",
+      "txHash": "0x19a7297af023b013c33ffe1c615bdb75b4ef702ae2c337c465dc9dae3059ca38",
+      "kind": "uups"
+    },
+    {
+      "address": "0x74DA890dd64b2A2b160131D5cbA0B9403b6C4bfE",
+      "txHash": "0x5986c99f9ce5cf8646104cd4baaad75222ffc0c873436791f1389527d20311b5",
+      "kind": "uups"
+    },
+    {
+      "address": "0xCee0537f99e52d1fC2ff725d7c7D99244c499F17",
+      "txHash": "0x8af6970bec774c7378bd3cc3bb0f3ac6f1e3a08eb28bea1c1a328a83bb3ab2e6",
+      "kind": "uups"
+    }
+  ],
+  "impls": {
+    "59b0e1d783998bc89902e2b7db8897fefea36414e017284a86106413c944fa4c": {
+      "address": "0x8E57d903f2ef234E172875c939B90F524F6BEa6a",
+      "txHash": "0x89ed45e59365f26a32dfd229a6b80c477c62eb6c7c8759a2b5fa2a31d99a3f39",
+      "layout": {
+        "solcVersion": "0.8.24",
+        "storage": [
+          {
+            "label": "access",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_contract(NammaSevaAccess)53723",
+            "contract": "NammaSevaBase",
+            "src": "project\\contracts\\NammaSevaBase.sol:20"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "NammaSevaBase",
+            "src": "project\\contracts\\NammaSevaBase.sol:23"
+          },
+          {
+            "label": "escrow",
+            "offset": 0,
+            "slot": "50",
+            "type": "t_address",
+            "contract": "ProjectRegistry",
+            "src": "project\\contracts\\ProjectRegistry.sol:34"
+          },
+          {
+            "label": "tenderRegistry",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_address",
+            "contract": "ProjectRegistry",
+            "src": "project\\contracts\\ProjectRegistry.sol:35"
+          },
+          {
+            "label": "grievanceRegistry",
+            "offset": 0,
+            "slot": "52",
+            "type": "t_address",
+            "contract": "ProjectRegistry",
+            "src": "project\\contracts\\ProjectRegistry.sol:36"
+          },
+          {
+            "label": "projectCount",
+            "offset": 20,
+            "slot": "52",
+            "type": "t_uint64",
+            "contract": "ProjectRegistry",
+            "src": "project\\contracts\\ProjectRegistry.sol:38"
+          },
+          {
+            "label": "_projects",
+            "offset": 0,
+            "slot": "53",
+            "type": "t_mapping(t_uint256,t_struct(Project)57095_storage)",
+            "contract": "ProjectRegistry",
+            "src": "project\\contracts\\ProjectRegistry.sol:39"
+          },
+          {
+            "label": "hasApprovedProject",
+            "offset": 0,
+            "slot": "54",
+            "type": "t_mapping(t_uint256,t_mapping(t_address,t_bool))",
+            "contract": "ProjectRegistry",
+            "src": "project\\contracts\\ProjectRegistry.sol:40"
+          }
+        ],
+        "types": {
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)52_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_contract(NammaSevaAccess)53723": {
+            "label": "contract NammaSevaAccess",
+            "numberOfBytes": "20"
+          },
+          "t_enum(Category)57055": {
+            "label": "enum IProjectRegistry.Category",
+            "members": [
+              "ROAD",
+              "DRAINAGE",
+              "WATER_SUPPLY",
+              "STREET_LIGHTING",
+              "PARK",
+              "BUILDING",
+              "OTHER"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_enum(Status)57047": {
+            "label": "enum IProjectRegistry.Status",
+            "members": [
+              "PENDING_APPROVAL",
+              "ACTIVE",
+              "PAUSED",
+              "COMPLETED",
+              "CANCELLED"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_int32": {
+            "label": "int32",
+            "numberOfBytes": "4"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_address,t_bool))": {
+            "label": "mapping(uint256 => mapping(address => bool))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(Project)57095_storage)": {
+            "label": "mapping(uint256 => struct IProjectRegistry.Project)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(Project)57095_storage": {
+            "label": "struct IProjectRegistry.Project",
+            "members": [
+              {
+                "label": "metaHash",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "budget",
+                "type": "t_uint128",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "spent",
+                "type": "t_uint128",
+                "offset": 16,
+                "slot": "1"
+              },
+              {
+                "label": "id",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "startDate",
+                "type": "t_uint64",
+                "offset": 8,
+                "slot": "2"
+              },
+              {
+                "label": "endDate",
+                "type": "t_uint64",
+                "offset": 16,
+                "slot": "2"
+              },
+              {
+                "label": "wardId",
+                "type": "t_uint32",
+                "offset": 24,
+                "slot": "2"
+              },
+              {
+                "label": "departmentId",
+                "type": "t_uint16",
+                "offset": 28,
+                "slot": "2"
+              },
+              {
+                "label": "latE6",
+                "type": "t_int32",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "lngE6",
+                "type": "t_int32",
+                "offset": 4,
+                "slot": "3"
+              },
+              {
+                "label": "official",
+                "type": "t_address",
+                "offset": 8,
+                "slot": "3"
+              },
+              {
+                "label": "contractor",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "status",
+                "type": "t_enum(Status)57047",
+                "offset": 20,
+                "slot": "4"
+              },
+              {
+                "label": "category",
+                "type": "t_enum(Category)57055",
+                "offset": 21,
+                "slot": "4"
+              },
+              {
+                "label": "approvalThreshold",
+                "type": "t_uint8",
+                "offset": 22,
+                "slot": "4"
+              },
+              {
+                "label": "approvalCount",
+                "type": "t_uint8",
+                "offset": 23,
+                "slot": "4"
+              },
+              {
+                "label": "milestoneCount",
+                "type": "t_uint16",
+                "offset": 24,
+                "slot": "4"
+              },
+              {
+                "label": "cancelRequested",
+                "type": "t_bool",
+                "offset": 26,
+                "slot": "4"
+              }
+            ],
+            "numberOfBytes": "160"
+          },
+          "t_uint128": {
+            "label": "uint128",
+            "numberOfBytes": "16"
+          },
+          "t_uint16": {
+            "label": "uint16",
+            "numberOfBytes": "2"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint32": {
+            "label": "uint32",
+            "numberOfBytes": "4"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "npm\\@openzeppelin\\contracts-upgradeable@5.4.0\\proxy\\utils\\Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "npm\\@openzeppelin\\contracts-upgradeable@5.4.0\\proxy\\utils\\Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "8fd96a0a22a524904aa827ce88dbf54307be4c9f9de6271cb694fd4322fec7c3": {
+      "address": "0xc1D2aC32445288662a7a1509Ed212947198CA937",
+      "txHash": "0x67a6868ab632759a574ed9b088b72add6a6bc4e66771c4f3a101d778e2d5851c",
+      "layout": {
+        "solcVersion": "0.8.24",
+        "storage": [
+          {
+            "label": "access",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_contract(NammaSevaAccess)53723",
+            "contract": "NammaSevaBase",
+            "src": "project\\contracts\\NammaSevaBase.sol:20"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "NammaSevaBase",
+            "src": "project\\contracts\\NammaSevaBase.sol:23"
+          },
+          {
+            "label": "registry",
+            "offset": 0,
+            "slot": "50",
+            "type": "t_contract(IProjectRegistry)57130",
+            "contract": "MilestoneEscrow",
+            "src": "project\\contracts\\MilestoneEscrow.sol:57"
+          },
+          {
+            "label": "mode",
+            "offset": 20,
+            "slot": "50",
+            "type": "t_enum(Mode)51869",
+            "contract": "MilestoneEscrow",
+            "src": "project\\contracts\\MilestoneEscrow.sol:58"
+          },
+          {
+            "label": "treasury",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_address",
+            "contract": "MilestoneEscrow",
+            "src": "project\\contracts\\MilestoneEscrow.sol:60"
+          },
+          {
+            "label": "milestoneCount",
+            "offset": 20,
+            "slot": "51",
+            "type": "t_uint64",
+            "contract": "MilestoneEscrow",
+            "src": "project\\contracts\\MilestoneEscrow.sol:62"
+          },
+          {
+            "label": "_milestones",
+            "offset": 0,
+            "slot": "52",
+            "type": "t_mapping(t_uint256,t_struct(Milestone)51901_storage)",
+            "contract": "MilestoneEscrow",
+            "src": "project\\contracts\\MilestoneEscrow.sol:63"
+          },
+          {
+            "label": "funds",
+            "offset": 0,
+            "slot": "53",
+            "type": "t_mapping(t_uint256,t_struct(ProjectFunds)51910_storage)",
+            "contract": "MilestoneEscrow",
+            "src": "project\\contracts\\MilestoneEscrow.sol:64"
+          },
+          {
+            "label": "_approved",
+            "offset": 0,
+            "slot": "54",
+            "type": "t_mapping(t_uint256,t_mapping(t_uint32,t_mapping(t_address,t_bool)))",
+            "contract": "MilestoneEscrow",
+            "src": "project\\contracts\\MilestoneEscrow.sol:65"
+          }
+        ],
+        "types": {
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)52_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(ReentrancyGuardStorage)205_storage": {
+            "label": "struct ReentrancyGuardUpgradeable.ReentrancyGuardStorage",
+            "members": [
+              {
+                "label": "_status",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_contract(IProjectRegistry)57130": {
+            "label": "contract IProjectRegistry",
+            "numberOfBytes": "20"
+          },
+          "t_contract(NammaSevaAccess)53723": {
+            "label": "contract NammaSevaAccess",
+            "numberOfBytes": "20"
+          },
+          "t_enum(MilestoneStatus)51876": {
+            "label": "enum MilestoneEscrow.MilestoneStatus",
+            "members": [
+              "PENDING",
+              "PROOF_SUBMITTED",
+              "APPROVED",
+              "REJECTED",
+              "PAID",
+              "VOID"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_enum(Mode)51869": {
+            "label": "enum MilestoneEscrow.Mode",
+            "members": [
+              "LEDGER",
+              "ESCROW"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_int32": {
+            "label": "int32",
+            "numberOfBytes": "4"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_uint32,t_mapping(t_address,t_bool)))": {
+            "label": "mapping(uint256 => mapping(uint32 => mapping(address => bool)))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(Milestone)51901_storage)": {
+            "label": "mapping(uint256 => struct MilestoneEscrow.Milestone)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(ProjectFunds)51910_storage)": {
+            "label": "mapping(uint256 => struct MilestoneEscrow.ProjectFunds)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint32,t_mapping(t_address,t_bool))": {
+            "label": "mapping(uint32 => mapping(address => bool))",
+            "numberOfBytes": "32"
+          },
+          "t_struct(Milestone)51901_storage": {
+            "label": "struct MilestoneEscrow.Milestone",
+            "members": [
+              {
+                "label": "metaHash",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "proofHash",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "amount",
+                "type": "t_uint128",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "id",
+                "type": "t_uint64",
+                "offset": 16,
+                "slot": "2"
+              },
+              {
+                "label": "projectId",
+                "type": "t_uint64",
+                "offset": 24,
+                "slot": "2"
+              },
+              {
+                "label": "proofLatE6",
+                "type": "t_int32",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "proofLngE6",
+                "type": "t_int32",
+                "offset": 4,
+                "slot": "3"
+              },
+              {
+                "label": "submittedAt",
+                "type": "t_uint64",
+                "offset": 8,
+                "slot": "3"
+              },
+              {
+                "label": "round",
+                "type": "t_uint32",
+                "offset": 16,
+                "slot": "3"
+              },
+              {
+                "label": "approvalCount",
+                "type": "t_uint8",
+                "offset": 20,
+                "slot": "3"
+              },
+              {
+                "label": "status",
+                "type": "t_enum(MilestoneStatus)51876",
+                "offset": 21,
+                "slot": "3"
+              }
+            ],
+            "numberOfBytes": "128"
+          },
+          "t_struct(ProjectFunds)51910_storage": {
+            "label": "struct MilestoneEscrow.ProjectFunds",
+            "members": [
+              {
+                "label": "funded",
+                "type": "t_uint128",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "balance",
+                "type": "t_uint128",
+                "offset": 16,
+                "slot": "0"
+              },
+              {
+                "label": "allocated",
+                "type": "t_uint128",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "unsettled",
+                "type": "t_uint64",
+                "offset": 16,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_uint128": {
+            "label": "uint128",
+            "numberOfBytes": "16"
+          },
+          "t_uint32": {
+            "label": "uint32",
+            "numberOfBytes": "4"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.ReentrancyGuard": [
+            {
+              "contract": "ReentrancyGuardUpgradeable",
+              "label": "_status",
+              "type": "t_uint256",
+              "src": "npm\\@openzeppelin\\contracts-upgradeable@5.4.0\\utils\\ReentrancyGuardUpgradeable.sol:43",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "npm\\@openzeppelin\\contracts-upgradeable@5.4.0\\proxy\\utils\\Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "npm\\@openzeppelin\\contracts-upgradeable@5.4.0\\proxy\\utils\\Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "c0fce46583f3401a2d62a1c332de1dd71d8092b442428fe9a88a3bf71a4ca03c": {
+      "address": "0xF0A58b5d987eeB39951a622c805e60dff072a0B4",
+      "txHash": "0x6d0b0e77d391f53360941de1131fda2bdfd71b44942d2e909256f9239c2ada8c",
+      "layout": {
+        "solcVersion": "0.8.24",
+        "storage": [
+          {
+            "label": "access",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_contract(NammaSevaAccess)53723",
+            "contract": "NammaSevaBase",
+            "src": "project\\contracts\\NammaSevaBase.sol:20"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "NammaSevaBase",
+            "src": "project\\contracts\\NammaSevaBase.sol:23"
+          },
+          {
+            "label": "registry",
+            "offset": 0,
+            "slot": "50",
+            "type": "t_contract(IProjectRegistry)57130",
+            "contract": "GrievanceRegistry",
+            "src": "project\\contracts\\GrievanceRegistry.sol:55"
+          },
+          {
+            "label": "escalationThreshold",
+            "offset": 20,
+            "slot": "50",
+            "type": "t_uint32",
+            "contract": "GrievanceRegistry",
+            "src": "project\\contracts\\GrievanceRegistry.sol:57"
+          },
+          {
+            "label": "maxGrievancesPerDay",
+            "offset": 24,
+            "slot": "50",
+            "type": "t_uint8",
+            "contract": "GrievanceRegistry",
+            "src": "project\\contracts\\GrievanceRegistry.sol:59"
+          },
+          {
+            "label": "responseSla",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_uint64",
+            "contract": "GrievanceRegistry",
+            "src": "project\\contracts\\GrievanceRegistry.sol:61"
+          },
+          {
+            "label": "grievanceCount",
+            "offset": 8,
+            "slot": "51",
+            "type": "t_uint64",
+            "contract": "GrievanceRegistry",
+            "src": "project\\contracts\\GrievanceRegistry.sol:63"
+          },
+          {
+            "label": "_grievances",
+            "offset": 0,
+            "slot": "52",
+            "type": "t_mapping(t_uint256,t_struct(Grievance)50998_storage)",
+            "contract": "GrievanceRegistry",
+            "src": "project\\contracts\\GrievanceRegistry.sol:64"
+          },
+          {
+            "label": "hasUpvoted",
+            "offset": 0,
+            "slot": "53",
+            "type": "t_mapping(t_uint256,t_mapping(t_bytes32,t_bool))",
+            "contract": "GrievanceRegistry",
+            "src": "project\\contracts\\GrievanceRegistry.sol:65"
+          },
+          {
+            "label": "citizenOfSigner",
+            "offset": 0,
+            "slot": "54",
+            "type": "t_mapping(t_address,t_bytes32)",
+            "contract": "GrievanceRegistry",
+            "src": "project\\contracts\\GrievanceRegistry.sol:66"
+          },
+          {
+            "label": "filedOnDay",
+            "offset": 0,
+            "slot": "55",
+            "type": "t_mapping(t_bytes32,t_mapping(t_uint256,t_uint256))",
+            "contract": "GrievanceRegistry",
+            "src": "project\\contracts\\GrievanceRegistry.sol:67"
+          }
+        ],
+        "types": {
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)52_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_contract(IProjectRegistry)57130": {
+            "label": "contract IProjectRegistry",
+            "numberOfBytes": "20"
+          },
+          "t_contract(NammaSevaAccess)53723": {
+            "label": "contract NammaSevaAccess",
+            "numberOfBytes": "20"
+          },
+          "t_enum(Action)50974": {
+            "label": "enum GrievanceRegistry.Action",
+            "members": [
+              "NONE",
+              "PAUSE_PROJECT",
+              "DISMISS"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_enum(Category)50966": {
+            "label": "enum GrievanceRegistry.Category",
+            "members": [
+              "QUALITY",
+              "DELAY",
+              "SAFETY",
+              "MISSING_WORK",
+              "CORRUPTION",
+              "OTHER"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_enum(Status)50970": {
+            "label": "enum GrievanceRegistry.Status",
+            "members": [
+              "OPEN",
+              "ESCALATED",
+              "RESPONDED"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_address,t_bytes32)": {
+            "label": "mapping(address => bytes32)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_bool)": {
+            "label": "mapping(bytes32 => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_mapping(t_uint256,t_uint256))": {
+            "label": "mapping(bytes32 => mapping(uint256 => uint256))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_bytes32,t_bool))": {
+            "label": "mapping(uint256 => mapping(bytes32 => bool))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(Grievance)50998_storage)": {
+            "label": "mapping(uint256 => struct GrievanceRegistry.Grievance)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_uint256)": {
+            "label": "mapping(uint256 => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(Grievance)50998_storage": {
+            "label": "struct GrievanceRegistry.Grievance",
+            "members": [
+              {
+                "label": "citizenHash",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "id",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "projectId",
+                "type": "t_uint64",
+                "offset": 8,
+                "slot": "1"
+              },
+              {
+                "label": "createdAt",
+                "type": "t_uint64",
+                "offset": 16,
+                "slot": "1"
+              },
+              {
+                "label": "upvotes",
+                "type": "t_uint32",
+                "offset": 24,
+                "slot": "1"
+              },
+              {
+                "label": "category",
+                "type": "t_enum(Category)50966",
+                "offset": 28,
+                "slot": "1"
+              },
+              {
+                "label": "status",
+                "type": "t_enum(Status)50970",
+                "offset": 29,
+                "slot": "1"
+              },
+              {
+                "label": "action",
+                "type": "t_enum(Action)50974",
+                "offset": 30,
+                "slot": "1"
+              },
+              {
+                "label": "escalatedAt",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "respondedAt",
+                "type": "t_uint64",
+                "offset": 8,
+                "slot": "2"
+              }
+            ],
+            "numberOfBytes": "96"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint32": {
+            "label": "uint32",
+            "numberOfBytes": "4"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "npm\\@openzeppelin\\contracts-upgradeable@5.4.0\\proxy\\utils\\Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "npm\\@openzeppelin\\contracts-upgradeable@5.4.0\\proxy\\utils\\Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "b04bffcef4e81c724e79ac04ab02639a1e5edf09a52c6f0637177604c750e6f3": {
+      "address": "0x2d813D49b6d88dE199502735B7cd9Ce91C8acE18",
+      "txHash": "0x986fee45087f01b1746ea726fe3d27032587a194ff1b9fdf5eef4142914340db",
+      "layout": {
+        "solcVersion": "0.8.24",
+        "storage": [
+          {
+            "label": "access",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_contract(NammaSevaAccess)53723",
+            "contract": "NammaSevaBase",
+            "src": "project\\contracts\\NammaSevaBase.sol:20"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "NammaSevaBase",
+            "src": "project\\contracts\\NammaSevaBase.sol:23"
+          },
+          {
+            "label": "registry",
+            "offset": 0,
+            "slot": "50",
+            "type": "t_contract(IProjectRegistry)57130",
+            "contract": "TenderRegistry",
+            "src": "project\\contracts\\TenderRegistry.sol:43"
+          },
+          {
+            "label": "tenderCount",
+            "offset": 20,
+            "slot": "50",
+            "type": "t_uint64",
+            "contract": "TenderRegistry",
+            "src": "project\\contracts\\TenderRegistry.sol:44"
+          },
+          {
+            "label": "_tenders",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_mapping(t_uint256,t_struct(Tender)55356_storage)",
+            "contract": "TenderRegistry",
+            "src": "project\\contracts\\TenderRegistry.sol:45"
+          },
+          {
+            "label": "_bids",
+            "offset": 0,
+            "slot": "52",
+            "type": "t_mapping(t_uint256,t_mapping(t_address,t_struct(Bid)55365_storage))",
+            "contract": "TenderRegistry",
+            "src": "project\\contracts\\TenderRegistry.sol:46"
+          },
+          {
+            "label": "_bidders",
+            "offset": 0,
+            "slot": "53",
+            "type": "t_mapping(t_uint256,t_array(t_address)dyn_storage)",
+            "contract": "TenderRegistry",
+            "src": "project\\contracts\\TenderRegistry.sol:47"
+          },
+          {
+            "label": "openTenderOf",
+            "offset": 0,
+            "slot": "54",
+            "type": "t_mapping(t_uint256,t_uint256)",
+            "contract": "TenderRegistry",
+            "src": "project\\contracts\\TenderRegistry.sol:48"
+          }
+        ],
+        "types": {
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)52_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_address)dyn_storage": {
+            "label": "address[]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_contract(IProjectRegistry)57130": {
+            "label": "contract IProjectRegistry",
+            "numberOfBytes": "20"
+          },
+          "t_contract(NammaSevaAccess)53723": {
+            "label": "contract NammaSevaAccess",
+            "numberOfBytes": "20"
+          },
+          "t_enum(Status)55336": {
+            "label": "enum TenderRegistry.Status",
+            "members": [
+              "OPEN",
+              "AWARDED",
+              "CANCELLED"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_address,t_struct(Bid)55365_storage)": {
+            "label": "mapping(address => struct TenderRegistry.Bid)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_array(t_address)dyn_storage)": {
+            "label": "mapping(uint256 => address[])",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_address,t_struct(Bid)55365_storage))": {
+            "label": "mapping(uint256 => mapping(address => struct TenderRegistry.Bid))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(Tender)55356_storage)": {
+            "label": "mapping(uint256 => struct TenderRegistry.Tender)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_uint256)": {
+            "label": "mapping(uint256 => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(Bid)55365_storage": {
+            "label": "struct TenderRegistry.Bid",
+            "members": [
+              {
+                "label": "commitHash",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "amount",
+                "type": "t_uint128",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "revealedAt",
+                "type": "t_uint64",
+                "offset": 16,
+                "slot": "1"
+              },
+              {
+                "label": "revealed",
+                "type": "t_bool",
+                "offset": 24,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(Tender)55356_storage": {
+            "label": "struct TenderRegistry.Tender",
+            "members": [
+              {
+                "label": "id",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "projectId",
+                "type": "t_uint64",
+                "offset": 8,
+                "slot": "0"
+              },
+              {
+                "label": "commitDeadline",
+                "type": "t_uint64",
+                "offset": 16,
+                "slot": "0"
+              },
+              {
+                "label": "revealDeadline",
+                "type": "t_uint64",
+                "offset": 24,
+                "slot": "0"
+              },
+              {
+                "label": "winner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "status",
+                "type": "t_enum(Status)55336",
+                "offset": 20,
+                "slot": "1"
+              },
+              {
+                "label": "bidCount",
+                "type": "t_uint16",
+                "offset": 21,
+                "slot": "1"
+              },
+              {
+                "label": "revealedCount",
+                "type": "t_uint16",
+                "offset": 23,
+                "slot": "1"
+              },
+              {
+                "label": "winningBid",
+                "type": "t_uint128",
+                "offset": 0,
+                "slot": "2"
+              }
+            ],
+            "numberOfBytes": "96"
+          },
+          "t_uint128": {
+            "label": "uint128",
+            "numberOfBytes": "16"
+          },
+          "t_uint16": {
+            "label": "uint16",
+            "numberOfBytes": "2"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "npm\\@openzeppelin\\contracts-upgradeable@5.4.0\\proxy\\utils\\Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "npm\\@openzeppelin\\contracts-upgradeable@5.4.0\\proxy\\utils\\Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

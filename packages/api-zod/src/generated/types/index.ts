@@ -14,6 +14,8 @@
  * OpenAPI spec version: 0.3.0
  */
 
+export * from './accountProfile';
+export * from './accountProfileInput';
 export * from './address';
 export * from './amount';
 export * from './anomaly';

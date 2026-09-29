@@ -1,6 +1,7 @@
 import {
   fileGrievance,
   getRelayJob,
+  listLedgerEvents,
   upvoteGrievance,
   type Grievance,
   type GrievanceCategory,
@@ -28,6 +29,16 @@ import { cn } from "@/lib/utils";
 
 const CATEGORIES: GrievanceCategory[] = ["QUALITY", "DELAY", "SAFETY", "MISSING_WORK", "CORRUPTION", "OTHER"];
 
+/** Refresh once the indexer has stored the tx's confirmed events (≤ 3 min). */
+async function refreshWhenIndexed(txHash: string) {
+  for (let i = 0; i < 60; i++) {
+    await new Promise((r) => setTimeout(r, 3000));
+    const page = await listLedgerEvents({ txHash, limit: 1 }).catch(() => null);
+    if (page && page.total > 0) break;
+  }
+  await queryClient.invalidateQueries();
+}
+
 /** Poll a relay job until it is on-chain (or failed), with toasts. */
 async function followRelayJob(jobId: string, t: (k: string, o?: Record<string, unknown>) => string, successKey: string) {
   const id = toast.loading(t("citizen.queued"));
@@ -36,7 +47,9 @@ async function followRelayJob(jobId: string, t: (k: string, o?: Record<string, u
     const job = await getRelayJob(jobId).catch(() => null);
     if (job?.status === "confirmed") {
       toast.success(t(successKey), { id, description: t("tx.indexing") });
-      for (const d of [1500, 5000]) setTimeout(() => void queryClient.invalidateQueries(), d);
+      // "confirmed" means mined; the dashboards change once the indexer has the tx (~20 s on MST).
+      if (job.txHash) void refreshWhenIndexed(job.txHash);
+      else void queryClient.invalidateQueries();
       return;
     }
     if (job?.status === "failed") {

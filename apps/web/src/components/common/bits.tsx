@@ -119,7 +119,7 @@ export function AddressLink({ address, label, you }: { address: string | null | 
       {label && <span className="font-medium">{label}</span>}
       {named ? (
         <>
-          <span className="font-medium" title={named.title}>
+          <span className="font-medium" title={named.title ?? undefined}>
             {named.name}
           </span>
           <span className="text-muted-foreground">{short}</span>

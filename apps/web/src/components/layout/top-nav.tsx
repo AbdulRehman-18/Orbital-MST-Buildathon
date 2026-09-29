@@ -8,6 +8,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { LanguageSwitcher } from "./language-switcher";
+import { NetworkBadge } from "./network-badge";
 import { PUBLIC_NAV, workspacesFor, type NavItem } from "./nav";
 import { UserMenu } from "./user-menu";
 
@@ -77,6 +78,7 @@ export function TopNav() {
         )}
 
         <div className="flex items-center gap-1 sm:gap-2 lg:justify-self-end">
+          <NetworkBadge />
           <LanguageSwitcher />
           <UserMenu />
           {!bare && (

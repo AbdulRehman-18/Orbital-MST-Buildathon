@@ -353,6 +353,34 @@ describe("citizen grievances", () => {
   });
 });
 
+describe("account display names", () => {
+  it("are public to read and admin-only to write", async () => {
+    const addr = CONTRACTOR.toUpperCase().replace("0X", "0x");
+    const body = { name: "Sri Ganesh Constructions", title: "Class-I civil contractor" };
+    await request(t.app).put(`/api/profiles/${addr}`).send(body).expect(401);
+    const official = await tokenFor({ role: "GOVT_OFFICIAL", roles: ["GOVT_OFFICIAL"], walletAddress: OFFICIAL });
+    await request(t.app).put(`/api/profiles/${addr}`).set("authorization", `Bearer ${official}`).send(body).expect(403);
+
+    const admin = await tokenFor({ role: "ADMIN", roles: ["ADMIN"], walletAddress: OFFICIAL });
+    await request(t.app).put(`/api/profiles/${addr}`).set("authorization", `Bearer ${admin}`).send({ name: "x" }).expect(400);
+    await request(t.app).put("/api/profiles/0x123").set("authorization", `Bearer ${admin}`).send(body).expect(400);
+    const saved = await request(t.app).put(`/api/profiles/${addr}`).set("authorization", `Bearer ${admin}`).send(body).expect(200);
+    expect(saved.body).toMatchObject({ address: CONTRACTOR, ...body });
+    await request(t.app)
+      .put(`/api/profiles/${addr}`)
+      .set("authorization", `Bearer ${admin}`)
+      .send({ name: "Sri Ganesh Constructions Pvt Ltd" })
+      .expect(200);
+
+    const list = await request(t.app).get("/api/profiles").expect(200);
+    expect(list.body).toEqual([expect.objectContaining({ address: CONTRACTOR, name: "Sri Ganesh Constructions Pvt Ltd", title: null })]);
+    expect(list.body[0].updatedBy).toBeUndefined();
+
+    await request(t.app).delete(`/api/profiles/${addr}`).set("authorization", `Bearer ${admin}`).expect(204);
+    expect((await request(t.app).get("/api/profiles").expect(200)).body).toEqual([]);
+  });
+});
+
 describe("misc", () => {
   it("tender phases follow the time they are given (chain time), not the server clock", () => {
     const t = { status: "OPEN", commitDeadline: new Date(1_000), revealDeadline: new Date(2_000), updatedBlock: 1, cancelReasonHash: null } as unknown as Parameters<typeof withPhase>[0];

@@ -1,7 +1,10 @@
 {
   "$comment": "Fill with the team's MST testnet wallets (plan §8.3 step 2), then run `pnpm --filter @namma-seva/contracts roles:mst-testnet`.",
-  "GOVT_OFFICIAL": [],
-  "AUDITOR": [],
-  "CONTRACTOR": [],
-  "RELAYER": []
+  "GOVT_OFFICIAL": [{ "address": "0xe47345Bb560d8EEFf94abDD1e9d7B01CAe90Ef4B", "wards": [150, 151] }],
+  "AUDITOR": [{ "address": "0x1fe6C57419220be389a2d00C6f149EDD50EA644d", "wards": ["ALL"]},
+  { "address": "0xdb41AEc6a74bd96F948c8053e037eD6a26256Aae", "wards": ["ALL"] }
+  ],
+  "CONTRACTOR": [{ "address": "0xDcb48116f02A1f7449a4636C655245c2155E40AB"}],
+  "RELAYER": [{ "address": "0x1995BfC19985144125c6F648E7E52dC7D8DDfCe9"}]  
 }
+

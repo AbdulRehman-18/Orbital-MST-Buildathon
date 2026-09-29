@@ -161,3 +161,15 @@ export const auditLog = pgTable(
   },
   (t) => [index("audit_log_at_idx").on(t.at)],
 );
+
+/**
+ * Public display names for wallets (contractor firms, offices), set by an admin. Shown instead of
+ * raw addresses everywhere in the UI; the address stays the on-chain identity.
+ */
+export const accountProfiles = pgTable("account_profiles", {
+  address: address("address").primaryKey(),
+  name: text("name").notNull(),
+  title: text("title"),
+  updatedBy: address("updated_by"),
+  updatedAt: tsz("updated_at").notNull().defaultNow(),
+});

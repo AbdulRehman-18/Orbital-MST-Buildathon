@@ -560,6 +560,13 @@ export const en = {
     revoke: "Revoke",
     wardsHint: "Comma-separated ward numbers, or leave empty for none",
     allWardsLabel: "All wards",
+    setName: "Set name",
+    nameTitle: "Display name",
+    nameBody: "Shown instead of the wallet address everywhere in the app. Public — use a firm or office name, never a private person's details.",
+    nameLabel: "Name (firm or office)",
+    titleLabel: "Description (optional)",
+    nameSaved: "Name saved",
+    nameHint: "Optional — e.g. the contractor's firm name",
   },
   anomalies: {
     title: "Anomaly review",

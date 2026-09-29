@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { errorMessage, useMode } from "@/lib/api";
 import { formatAmount, shortAddress } from "@/lib/format";
+import { useNameOf } from "@/lib/names";
 
 const AMOUNT_FIELDS = new Set(["budget", "spent"]);
 const ADDRESS_FIELDS = new Set(["official", "contractor", "metaHash"]);
@@ -14,11 +15,23 @@ const ADDRESS_FIELDS = new Set(["official", "contractor", "metaHash"]);
 export function VerifyResultView({ result }: { result: VerifyResult }) {
   const { t } = useTranslation();
   const mode = useMode();
-  const show = (field: string, v: string | null) => {
+  const nameOf = useNameOf();
+  const show =(field: string, v: string | null) => {
     if (v === null) return "—";
     if (AMOUNT_FIELDS.has(field)) return formatAmount(v, mode);
     if (field === "status") return t(`status.${v}`, { defaultValue: v });
-    if (ADDRESS_FIELDS.has(field)) return <span className="font-mono text-xs" title={v}>{shortAddress(v)}</span>;
+    if (ADDRESS_FIELDS.has(field)) {
+      // Names for people/firms; the address (what the chain actually compares) stays visible.
+      const named = field === "metaHash" ? undefined : nameOf(v);
+      return (
+        <span className="inline-flex flex-col">
+          {named && <span className="font-medium">{named.name}</span>}
+          <span className="font-mono text-xs" title={v}>
+            {shortAddress(v)}
+          </span>
+        </span>
+      );
+    }
     return v;
   };
   return (
