@@ -43,3 +43,4 @@ apps/web/playwright-report/
 infra/compose/prod.env
 infra/secrets/
 backups/
+.vercel

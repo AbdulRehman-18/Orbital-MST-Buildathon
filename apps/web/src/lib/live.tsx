@@ -16,7 +16,8 @@ export function LiveUpdatesProvider({ children }: { children: ReactNode }) {
   const [head, setHead] = useState<Live["head"]>(null);
 
   useEffect(() => {
-    const socket = io({ path: "/api/socket.io", transports: ["websocket", "polling"] });
+    // tryAllTransports: hosts that proxy /api without WebSocket upgrades (Vercel rewrites) fall back to polling.
+    const socket = io({ path: "/api/socket.io", transports: ["websocket", "polling"], tryAllTransports: true });
     let timer: ReturnType<typeof setTimeout> | undefined;
     // Coalesce bursts (one block can touch many entities) into a single refetch.
     const invalidate = () => {
