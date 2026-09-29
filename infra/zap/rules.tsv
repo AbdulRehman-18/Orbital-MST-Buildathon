@@ -1,0 +1,7 @@
+# OWASP ZAP baseline rule overrides: <rule id>	<IGNORE|WARN|FAIL>	(comment)
+# Everything not listed uses the baseline default (WARN); the ones below FAIL the build.
+10038	FAIL	(Content Security Policy header not set)
+10020	FAIL	(Missing anti-clickjacking header)
+10021	FAIL	(X-Content-Type-Options missing)
+10035	FAIL	(Strict-Transport-Security missing)
+10098	IGNORE	(Cross-domain misconfiguration: the API sends CORS for the web origin by design)

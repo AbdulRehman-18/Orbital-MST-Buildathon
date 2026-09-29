@@ -52,12 +52,16 @@ export default defineConfig({
       url: configVariable("MST_TESTNET_RPC"),
       accounts: [configVariable("DEPLOYER_PRIVATE_KEY")],
     },
+    // Mainnet deployer is a hardware wallet (plan §16.2). Set DEPLOYER_MODE=hardware and point
+    // MST_MAINNET_RPC at Frame (https://frame.sh, http://127.0.0.1:1248) with MST mainnet added as a
+    // custom chain: Frame signs on the Ledger/Trezor and Hardhat only ever sees the address.
+    // Any other mode uses DEPLOYER_PRIVATE_KEY (testnet-style; refused by the runbook for mainnet).
     mstMainnet: {
       type: "http",
       chainType: "l1",
       chainId: 4646,
       url: configVariable("MST_MAINNET_RPC"),
-      accounts: [configVariable("DEPLOYER_PRIVATE_KEY")],
+      accounts: process.env.DEPLOYER_MODE === "hardware" ? "remote" : [configVariable("DEPLOYER_PRIVATE_KEY")],
     },
   },
   // Blockscout explorers — see docs/adr/0007.

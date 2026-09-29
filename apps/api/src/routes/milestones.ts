@@ -32,7 +32,7 @@ import { badRequest, forbidden, handler, notFound, parse } from "../lib/http";
 
 const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]);
 
-const upload = multer({
+export const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024, files: 5, fields: 10 },
   fileFilter: (_req, file, cb) => {
@@ -289,7 +289,7 @@ function publicMedia(x: {
   };
 }
 
-async function readExif(buffer: Buffer) {
+export async function readExif(buffer: Buffer) {
   try {
     const tags = (await exifr.parse(buffer, { gps: true, exif: true, tiff: true })) as Record<string, unknown> | undefined;
     const lat = typeof tags?.latitude === "number" ? tags.latitude : null;

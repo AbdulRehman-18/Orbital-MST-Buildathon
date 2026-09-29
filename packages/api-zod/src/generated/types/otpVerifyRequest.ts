@@ -13,6 +13,7 @@
  *
  * OpenAPI spec version: 0.3.0
  */
+import type { OtpVerifyRequestLang } from './otpVerifyRequestLang';
 
 export interface OtpVerifyRequest {
   /**
@@ -22,4 +23,12 @@ export interface OtpVerifyRequest {
   phone: string;
   /** @pattern ^[0-9]{6}$ */
   code: string;
+  /**
+     * Privacy Notice version accepted; recorded against the account on success.
+     * @minLength 1
+     * @maxLength 32
+     */
+  consentVersion: string;
+  /** Language the notice was shown in. */
+  lang?: OtpVerifyRequestLang;
 }

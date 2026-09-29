@@ -7,7 +7,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useMode } from "@/lib/api";
 import { explorerAddress, explorerTx } from "@/lib/chain";
 import { formatAmount, shortAddress, shortHash } from "@/lib/format";
+import { useNameOf } from "@/lib/names";
 import { cn } from "@/lib/utils";
+import { ToneIcon, type Tone } from "./tone";
 
 export function PageHeader({
   title,
@@ -25,8 +27,8 @@ export function PageHeader({
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div className="flex flex-col gap-1.5">
-        <h1 className="flex flex-wrap items-center gap-3 text-2xl font-semibold tracking-tight md:text-3xl">
-          {Icon && <Icon className="text-primary size-7 shrink-0" aria-hidden="true" />}
+        <h1 className="flex flex-wrap items-center gap-3 text-3xl font-medium tracking-[-0.03em] md:text-4xl">
+          {Icon && <Icon className="text-brand size-7 shrink-0" aria-hidden="true" />}
           {title}
           {badge}
         </h1>
@@ -37,47 +39,39 @@ export function PageHeader({
   );
 }
 
+/**
+ * One cell of a stat strip: a label over a large number. Place several inside a
+ * `grid grid-cols-2 lg:grid-cols-4` container; cells draw their own hairline dividers, so no gaps are needed.
+ */
+const STAT_TONE: Record<string, Tone> = { default: "slate", primary: "blue", civic: "teal", warning: "amber", success: "green" };
+
 export function StatCard({
   label,
   value,
-  icon: Icon,
   hint,
-  tone = "default",
   loading,
+  icon,
+  tone = "default",
 }: {
   label: string;
   value: ReactNode;
-  icon?: LucideIcon;
   hint?: ReactNode;
-  tone?: "default" | "primary" | "civic" | "warning" | "success";
   loading?: boolean;
+  /** Optional icon, shown in a soft tile tinted by `tone`. */
+  icon?: LucideIcon;
+  tone?: "default" | "primary" | "civic" | "warning" | "success";
 }) {
-  const toneClass = {
-    default: "bg-muted text-foreground",
-    primary: "bg-primary/10 text-primary",
-    civic: "bg-accent text-accent-foreground",
-    warning: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
-    success: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
-  }[tone];
   return (
-    <Card className="gap-0 py-3 sm:py-4">
-      <CardContent className="flex items-center gap-3 px-3 sm:gap-4 sm:px-4">
-        {Icon && (
-          <div className={cn("hidden size-11 shrink-0 items-center justify-center rounded-xl sm:flex", toneClass)}>
-            <Icon className="size-5" aria-hidden="true" />
-          </div>
-        )}
-        <div className="min-w-0">
-          <p className="text-muted-foreground line-clamp-2 text-[11px] leading-tight font-medium tracking-wide uppercase sm:text-xs">{label}</p>
-          {loading ? (
-            <Skeleton className="mt-1 h-7 w-20" />
-          ) : (
-            <p className="text-xl font-semibold break-words tabular-nums sm:text-2xl">{value}</p>
-          )}
-          {hint && <p className="text-muted-foreground truncate text-xs">{hint}</p>}
-        </div>
-      </CardContent>
-    </Card>
+    <div className="border-border flex min-w-0 flex-col gap-6 border-r border-b p-5 last:border-r-0 sm:p-7 [&:nth-child(2n)]:border-r-0 lg:[&:nth-child(2n)]:border-r lg:[&:nth-child(4n)]:border-r-0 [&:nth-last-child(-n+2)]:border-b-0 lg:[&:nth-last-child(-n+4)]:border-b-0">
+      <div className="flex items-center gap-3">
+        {icon && <ToneIcon icon={icon} tone={STAT_TONE[tone]} size="sm" />}
+        <p className="text-muted-foreground text-sm leading-tight">{label}</p>
+      </div>
+      <div className="flex flex-col gap-1">
+        {loading ? <Skeleton className="h-10 w-24" /> : <p className="text-3xl font-medium tracking-[-0.03em] break-words tabular-nums sm:text-4xl">{value}</p>}
+        {hint && <p className="text-muted-foreground truncate text-xs">{hint}</p>}
+      </div>
+    </div>
   );
 }
 
@@ -107,21 +101,33 @@ function CopyButton({ text }: { text: string }) {
 
 export function AddressLink({ address, label, you }: { address: string | null | undefined; label?: string; you?: boolean }) {
   const { t } = useTranslation();
+  const nameOf = useNameOf();
   if (!address) return <span className="text-muted-foreground">{t("common.notAssigned")}</span>;
   const url = explorerAddress(address);
+  const named = nameOf(address);
+  const short = url ? (
+    <a href={url} target="_blank" rel="noreferrer" className="font-mono text-xs underline-offset-4 hover:underline" title={address}>
+      {shortAddress(address)}
+    </a>
+  ) : (
+    <span className="font-mono text-xs" title={address}>
+      {shortAddress(address)}
+    </span>
+  );
   return (
-    <span className="inline-flex items-center gap-1">
+    <span className="inline-flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
       {label && <span className="font-medium">{label}</span>}
-      {url ? (
-        <a href={url} target="_blank" rel="noreferrer" className="font-mono text-xs underline-offset-4 hover:underline" title={address}>
-          {shortAddress(address)}
-        </a>
+      {named ? (
+        <>
+          <span className="font-medium" title={named.title}>
+            {named.name}
+          </span>
+          <span className="text-muted-foreground">{short}</span>
+        </>
       ) : (
-        <span className="font-mono text-xs" title={address}>
-          {shortAddress(address)}
-        </span>
+        short
       )}
-      {you && <span className="bg-primary/10 text-primary rounded px-1 text-[10px] font-semibold uppercase">{t("common.you")}</span>}
+      {you && <span className="bg-accent text-accent-foreground rounded px-1 text-[10px] font-semibold uppercase">{t("common.you")}</span>}
       <CopyButton text={address} />
     </span>
   );
@@ -146,7 +152,7 @@ export function TxLink({ hash }: { hash: string | null | undefined }) {
 
 export function EmptyState({ icon: Icon = Inbox, title, body, action }: { icon?: LucideIcon; title: string; body?: string; action?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed p-8 text-center">
+    <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed p-8 text-center">
       <Icon className="text-muted-foreground size-8" aria-hidden="true" />
       <p className="font-medium">{title}</p>
       {body && <p className="text-muted-foreground max-w-sm text-sm">{body}</p>}
@@ -177,11 +183,19 @@ export function Field({ label, children, hint, htmlFor }: { label: string; child
   );
 }
 
-export function ProgressBar({ value, className, tone = "primary" }: { value: number; className?: string; tone?: "primary" | "civic" }) {
+export function ProgressBar({ value, className, tone = "primary", label }: { value: number; className?: string; tone?: "primary" | "civic"; label?: string }) {
+  const { t } = useTranslation();
   return (
-    <div className={cn("bg-muted h-2 w-full overflow-hidden rounded-full", className)} role="progressbar" aria-valuenow={value} aria-valuemin={0} aria-valuemax={100}>
+    <div
+      className={cn("bg-muted h-2 w-full overflow-hidden rounded-full", className)}
+      role="progressbar"
+      aria-label={label ?? t("common.progress")}
+      aria-valuenow={Math.round(value)}
+      aria-valuemin={0}
+      aria-valuemax={100}
+    >
       <div
-        className={cn("h-full rounded-full transition-all", tone === "primary" ? "bg-primary" : "bg-civic")}
+        className={cn("h-full rounded-full transition-all", tone === "primary" ? "bg-brand" : "bg-civic")}
         style={{ width: `${Math.min(100, Math.max(0, value))}%` }}
       />
     </div>

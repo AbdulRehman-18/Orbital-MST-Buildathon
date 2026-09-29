@@ -34,3 +34,12 @@ packages/contracts/deployments/hardhat.json
 
 # local dev data (IPFS dev store, PGlite)
 .data/
+
+# Playwright output
+apps/web/test-results/
+apps/web/playwright-report/
+
+# Production secrets and backups (never commit)
+infra/compose/prod.env
+infra/secrets/
+backups/

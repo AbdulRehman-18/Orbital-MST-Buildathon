@@ -36,7 +36,7 @@ export default function WardPage() {
           </Button>
         }
       />
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="bg-card grid grid-cols-2 overflow-hidden rounded-3xl border lg:grid-cols-4">
         <StatCard label={t("home.statProjects")} value={stats.data?.totalProjects ?? 0} icon={Building2} tone="primary" loading={stats.isLoading} />
         <StatCard label={t("home.statBudget")} value={<Amount value={stats.data?.totalBudget} compact />} icon={Wallet} tone="civic" loading={stats.isLoading} />
         <StatCard label={t("home.statSpent")} value={<Amount value={stats.data?.totalSpent} compact />} icon={IndianRupee} tone="success" loading={stats.isLoading} />

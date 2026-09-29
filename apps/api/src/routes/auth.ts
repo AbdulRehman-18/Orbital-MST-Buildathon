@@ -1,4 +1,4 @@
-import { auditLog, users, type Db } from "@namma-seva/db";
+import { auditLog, consents, desc, eq, users, type Db } from "@namma-seva/db";
 import {
   DemoLoginBody,
   SendOtpBody,
@@ -64,15 +64,23 @@ export default function authRoutes(ctx: AppContext): IRouter {
     }),
   );
 
+  /** DPDP Act 2023: no OTP is sent, and no citizen is signed in, without the current notice accepted. */
+  function requireCurrentNotice(version: string) {
+    if (version !== config.consentVersion) {
+      throw badRequest("The Privacy Notice was updated — reload the page and accept the current notice.");
+    }
+  }
+
   // ─── Phone OTP (citizens) ──────────────────────────────────────────────
   router.post(
     "/auth/otp/send",
     handler(async (req, res) => {
-      const { phone } = parse(SendOtpBody, req.body);
+      const { phone, consentVersion } = parse(SendOtpBody, req.body);
+      requireCurrentNotice(consentVersion);
       const e164 = normalizePhone(phone);
       if (!e164) throw badRequest("Enter a valid mobile number");
       const hash = phoneHash(e164, config.auth.phonePepper);
-      const result = await sendOtp(db, ctx.otp, e164, hash);
+      const result = await sendOtp(db, ctx.otp, e164, hash, config.demoMode ? 1000 : undefined);
       if (!result.ok) throw tooMany("Too many codes requested — try again in an hour");
       // Demo mode shows the code on screen so anyone can try the citizen flow (never in production).
       res.json({ sent: true, expiresIn: OTP_TTL_SECONDS, ...(config.demoMode ? { devCode: result.code } : {}) });
@@ -82,12 +90,18 @@ export default function authRoutes(ctx: AppContext): IRouter {
   router.post(
     "/auth/otp/verify",
     handler(async (req, res) => {
-      const { phone, code } = parse(VerifyOtpBody, req.body);
+      const { phone, code, consentVersion, lang } = parse(VerifyOtpBody, req.body);
+      requireCurrentNotice(consentVersion);
       const e164 = normalizePhone(phone);
       if (!e164) throw badRequest("Enter a valid mobile number");
       const hash = phoneHash(e164, config.auth.phonePepper);
       if (!(await verifyOtp(db, hash, code))) throw unauthorized("Wrong or expired code");
       const user = await upsertCitizenUser(db, hash);
+      // One row per notice version: log in again with the same notice and nothing new is written.
+      const [latest] = await db.select().from(consents).where(eq(consents.userId, user.id)).orderBy(desc(consents.acceptedAt)).limit(1);
+      if (latest?.version !== consentVersion || latest.withdrawnAt) {
+        await db.insert(consents).values({ userId: user.id, version: consentVersion, lang: lang ?? "en" });
+      }
       await audit(req, `citizen:${hash.slice(0, 10)}`, "login.otp");
       await issue(res, user);
     }),

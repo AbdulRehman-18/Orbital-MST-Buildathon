@@ -26,6 +26,7 @@ export const PUBLIC_NAV: NavItem[] = [
   { path: "/verify", labelKey: "nav.verify", icon: Search },
   { path: "/ledger", labelKey: "nav.ledger", icon: ScrollText },
   { path: "/tenders", labelKey: "nav.tenders", icon: Gavel },
+  { path: "/transparency", labelKey: "nav.transparency", icon: ShieldCheck },
 ];
 
 /** Each role gets exactly one workspace; the sidebar shows only the signed-in user's. */

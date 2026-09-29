@@ -2,7 +2,7 @@
 // for stuck transactions (plan §9.4, ADR 0005).
 import { randomUUID } from "node:crypto";
 import type { Redis } from "ioredis";
-import { parseUnits, type TransactionReceipt, type TransactionRequest, type Wallet } from "ethers";
+import { parseUnits, type Signer, type TransactionReceipt, type TransactionRequest } from "ethers";
 import type { Logger } from "pino";
 
 /** Cross-process mutex + shared "next nonce" hint. Redis in production; in-memory for dev/tests. */
@@ -82,7 +82,8 @@ const MAX_BUMPS = 3;
 
 export class TxSender {
   constructor(
-    private readonly wallet: Wallet,
+    /** Any connected signer with a known address: a hot `Wallet` or a `KmsSigner`. */
+    private readonly wallet: Signer & { address: string },
     private readonly lock: NonceLock,
     private readonly logger: Logger,
     private readonly bumpAfterMs: number,

@@ -1,19 +1,11 @@
 import { cn } from "@/lib/utils";
 
-/** Namma Seva mark: a saffron block (a verified record) linked to a teal block (the citizen). */
+/** Namma Seva mark: a block within a block — a hexagon outline sealing a solid core. Inherits `currentColor`. */
 export function LogoMark({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 32 32" aria-hidden="true" className={cn("size-8", className)}>
-      <rect x="2" y="2" width="28" height="28" rx="8" className="fill-primary" />
-      <path
-        d="M9 20.5 14 25l9-11"
-        fill="none"
-        strokeWidth="3.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="stroke-primary-foreground"
-      />
-      <circle cx="23" cy="9" r="3" className="fill-civic" />
+    <svg viewBox="0 0 34 34" aria-hidden="true" className={cn("size-8", className)} fill="none">
+      <path d="M17 2 31 9.5 31 24.5 17 32 3 24.5 3 9.5 Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M17 10 24 13.9 24 21 17 24.9 10 21 10 13.9 Z" fill="currentColor" />
     </svg>
   );
 }

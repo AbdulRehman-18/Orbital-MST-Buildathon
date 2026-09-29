@@ -29,14 +29,16 @@ Public project data is often fragmented, delayed, or hard to verify. Namma Seva 
 
 ## Status
 
-**Phase 4 of 6 — Web app, wallets & i18n** (engineering complete against a local chain; MST testnet run pending the testnet deploy).
+**Phase 6 of 6 — Hardening, DevOps & pilot:** engineering complete; mainnet is **NO-GO** until the organisational gates close ([go/no-go](docs/pilot/mainnet-go-no-go.md)).
 
 - ✅ Phase 1: monorepo, shadcn web shell, API shell, MST chain package, ADRs
-- ✅ Phase 2: 6 contracts + multisig/timelock, 109 tests, audit regressions, Slither clean — see [packages/contracts](packages/contracts/README.md)
-- ✅ Phase 3: Postgres read model, reorg-safe indexer, SIWE + phone OTP, gasless relayer, OpenAPI v0.3 — see the [backend runbook](docs/runbooks/backend-local.md) and [ADR 0010](docs/adr/0010-backend-indexer-relayer.md)
-- ✅ Phase 4: role dashboards (citizen, official, auditor, contractor, admin), live map, wallet-signed flows, 4 languages, PWA — try it with `pnpm demo`
-- 🟨 Next: deploy to MST testnet ([runbook](docs/runbooks/deploy-mst-testnet.md)), then Phase 5 — grievance/tender/integrity features
-- 🎯 Target: production-ready pilot after the hardening and audit phase
+- ✅ Phase 2: 6 contracts + multisig/timelock, 114 tests, audit regressions, Slither clean — see [packages/contracts](packages/contracts/README.md)
+- ✅ Phase 3: Postgres read model, reorg-safe indexer, SIWE + phone OTP, gasless relayer, OpenAPI — see the [backend runbook](docs/runbooks/backend-local.md) and [ADR 0010](docs/adr/0010-backend-indexer-relayer.md)
+- ✅ Phase 4: role dashboards, live map, wallet-signed flows, 4 languages, PWA — try it with `pnpm demo`
+- ✅ Phase 5: grievances, tenders, proof integrity checks, anomaly detection v2, open data
+- ✅ Phase 6: instant 3-of-5 emergency stop + timelocked admin, KMS relayer custody, DPDP consent/erase/retention, CERT-In runbook, Transparency page, CI/CD, Docker + Nginx CSP, Prometheus/Grafana/alerts, backups + restore drills, k6 load tests, axe accessibility gate (56 e2e checks) — see [Phase 6](docs/phases/PHASE_6_HARDENING.md) and [ADR 0012](docs/adr/0012-hardening-and-compliance.md)
+- ⏳ Needs the outside world: external audit, hardware-wallet deploy ceremony, counsel sign-off, MoU, pen test, pilot ward, MST confirmations
+- 🎨 UI follows the DecentraliTrack reference design (light "paper" theme, ink pill buttons, blue→teal brand, floating header)
 
 ## Delivery roadmap
 
@@ -82,11 +84,20 @@ packages/
   api-client/     Generated React Query client
   contracts/      Hardhat project (Phase 2); legacy DecentraliTrack sources for reference
 infra/
-  compose/        docker-compose.dev.yml (Postgres, Redis)
-  docker/         Dockerfiles + nginx.conf
+  compose/        docker-compose.dev.yml (Postgres, Redis) · docker-compose.prod.yml (full stack + observability)
+  docker/         Dockerfiles + Nginx CSP template
+  monitoring/     Prometheus, alert rules, Alertmanager, Grafana dashboard
+  scripts/        Postgres backup + restore drill
+  zap/            OWASP ZAP baseline rules
+tests/load/       k6 load test (500 readers + 20 tx/min)
+.github/          CI, security, deploy and restore-drill workflows, Dependabot
 docs/
   phases/         6-phase delivery plan
   adr/            Architecture decisions, incl. verified MST network facts
+  runbooks/       deploy (testnet/mainnet), pause & resume, upgrade, role/key rotation, incidents, backups, monitoring
+  security/       static-analysis triage, ASVS L2 checklist, external-audit scope
+  compliance/     DPDP, CERT-In, GIGW 3.0, pilot MoU template
+  pilot/          pilot plan, mainnet go/no-go, success metrics, accessibility, soak and load-test protocols
 ```
 
 ## MST networks

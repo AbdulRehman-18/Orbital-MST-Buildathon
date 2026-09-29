@@ -23,7 +23,21 @@ const { chainId } = await ethers.provider.getNetwork();
 const balance = await ethers.provider.getBalance(deployer.address);
 const startBlock = await ethers.provider.getBlockNumber();
 const treasury = settings.treasury === "deployer" ? deployer.address : settings.treasury;
-if (treasury === ethers.ZeroAddress) throw new Error(`Set a treasury for ${networkName} in config/networks.ts`);
+if (treasury === ethers.ZeroAddress) throw new Error(`Set a treasury for ${networkName} (config/networks.ts, or NS_TREASURY on mainnet)`);
+
+// Mainnet go/no-go guards (plan §8.4 / §16.2): 3-of-5 multisig, distinct owners, none of them the deployer.
+if (networkName === "mstMainnet") {
+  const g = settings.governance;
+  const owners = (g?.owners ?? []).map((a) => a.toLowerCase());
+  if (!g || owners.length < 5) throw new Error("Mainnet needs ≥ 5 multisig owners in NS_GOVERNANCE_OWNERS (3-of-5).");
+  if (g.threshold < 3 || g.threshold > owners.length) throw new Error(`Mainnet multisig threshold must be 3..${owners.length}.`);
+  if (new Set(owners).size !== owners.length) throw new Error("NS_GOVERNANCE_OWNERS contains duplicates.");
+  if (owners.some((a) => !ethers.isAddress(a))) throw new Error("NS_GOVERNANCE_OWNERS contains an invalid address.");
+  if (owners.includes(deployer.address.toLowerCase())) {
+    throw new Error("The deployer must not be a multisig owner: it renounces ADMIN after handover and must not be reused.");
+  }
+  if (g.timelockDelaySeconds < 48 * 60 * 60) throw new Error("Mainnet timelock delay must be ≥ 48 h.");
+}
 
 console.log(`\nNamma Seva deploy → ${networkName} (chain ${chainId})`);
 console.log(`Deployer ${deployer.address}  balance ${ethers.formatEther(balance)}`);

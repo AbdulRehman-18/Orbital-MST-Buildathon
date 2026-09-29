@@ -1,0 +1,6 @@
+apiVersion: 1
+providers:
+  - name: namma-seva
+    folder: Namma Seva
+    type: file
+    options: { path: /var/lib/grafana/dashboards }

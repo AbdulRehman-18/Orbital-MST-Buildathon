@@ -39,7 +39,13 @@ const Env = z.object({
   NS_DEPLOYMENT_FILE: optional,
 
   RELAYER_PRIVATE_KEY: optional,
+  /** AWS KMS ECC_SECG_P256K1 key that signs relayer transactions (replaces RELAYER_PRIVATE_KEY). */
   RELAYER_KMS_KEY_ID: optional,
+  /** AWS KMS HMAC_256 key that derives per-citizen signing keys (replaces the private-key HMAC root). */
+  RELAYER_KMS_HMAC_KEY_ID: optional,
+  AWS_REGION: optional,
+  /** Override the KMS endpoint (LocalStack, VPC endpoint). */
+  RELAYER_KMS_ENDPOINT: optional,
   RELAYER_MIN_BALANCE: z.string().default("10"),
   RELAYER_DAILY_CAP: z.string().default("50"),
   RELAYER_GAS_BUMP_AFTER_MS: z.coerce.number().int().positive().default(60_000),
@@ -62,6 +68,22 @@ const Env = z.object({
   IPFS_BACKUP_PIN_URL: optional,
   IPFS_BACKUP_PIN_TOKEN: optional,
   /** Strict proof capture: reject-flag anything not taken with the in-app camera. */
+  /** Requests per minute per client IP: API 300, auth 30 — ten times that in demo mode, where a presenter (or the e2e suite) tries many roles from one address. */
+  RATE_LIMIT_API_PER_MIN: z.coerce.number().int().positive().optional(),
+  RATE_LIMIT_AUTH_PER_MIN: z.coerce.number().int().positive().optional(),
+  /** Days to keep audit/security logs. CERT-In requires ≥ 180; the Privacy Notice states 180. */
+  AUDIT_LOG_RETENTION_DAYS: z.coerce.number().int().min(180, "CERT-In requires security logs to be kept for at least 180 days").default(180),
+  /** Bearer token for GET /metrics. Required in production (the route is disabled without it). */
+  METRICS_TOKEN: optional,
+  /** Version of the Privacy Notice; must match `consent.version` in @namma-seva/i18n. */
+  CONSENT_VERSION: z.string().default("2026-10-01"),
+  /** Published on the Transparency page and in the Privacy Notice (DPDP Act grievance officer). */
+  GRIEVANCE_OFFICER_NAME: optional,
+  GRIEVANCE_OFFICER_EMAIL: optional,
+  GRIEVANCE_OFFICER_PHONE: optional,
+  AUDIT_REPORT_URL: optional,
+  /** Name of the pilot ward, shown on the Transparency page while running as a pilot. */
+  PILOT_NAME: optional,
   PROOF_STRICT: z.string().optional().transform((v) => v === "true"),
 });
 
@@ -80,8 +102,14 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
   if (env.DEPLOYER_PRIVATE_KEY && production) {
     throw new Error("DEPLOYER_PRIVATE_KEY must not be present in the API environment.");
   }
-  if (e.RELAYER_KMS_KEY_ID && !e.RELAYER_PRIVATE_KEY) {
-    throw new Error("RELAYER_KMS_KEY_ID is reserved for the KMS signer (Phase 6); set RELAYER_PRIVATE_KEY for now.");
+  if (e.RELAYER_KMS_KEY_ID && e.RELAYER_PRIVATE_KEY) {
+    throw new Error("Set either RELAYER_KMS_KEY_ID or RELAYER_PRIVATE_KEY, not both.");
+  }
+  if (Boolean(e.RELAYER_KMS_KEY_ID) !== Boolean(e.RELAYER_KMS_HMAC_KEY_ID)) {
+    throw new Error("RELAYER_KMS_KEY_ID and RELAYER_KMS_HMAC_KEY_ID must be set together.");
+  }
+  if (e.NS_CHAIN === "mstMainnet" && e.RELAYER_PRIVATE_KEY) {
+    throw new Error("Mainnet relayer keys must live in KMS (plan §16.2): set RELAYER_KMS_KEY_ID, not RELAYER_PRIVATE_KEY.");
   }
 
   const chainName = e.NS_CHAIN as NetworkName;
@@ -123,6 +151,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
     },
     relayer: {
       privateKey: e.RELAYER_PRIVATE_KEY,
+      kms: e.RELAYER_KMS_KEY_ID
+        ? { keyId: e.RELAYER_KMS_KEY_ID, hmacKeyId: e.RELAYER_KMS_HMAC_KEY_ID!, region: e.AWS_REGION, endpoint: e.RELAYER_KMS_ENDPOINT }
+        : undefined,
       minBalance: e.RELAYER_MIN_BALANCE,
       dailyCap: e.RELAYER_DAILY_CAP,
       gasBumpAfterMs: e.RELAYER_GAS_BUMP_AFTER_MS,
@@ -145,5 +176,19 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
     },
     ipfs: { pinataJwt: e.PINATA_JWT, gateway: e.PINATA_GATEWAY, backupUrl: e.IPFS_BACKUP_PIN_URL, backupToken: e.IPFS_BACKUP_PIN_TOKEN },
     proofStrict: e.PROOF_STRICT,
+    rateLimits: {
+      apiPerMin: e.RATE_LIMIT_API_PER_MIN ?? (e.NS_DEMO_MODE ? 3000 : 300),
+      authPerMin: e.RATE_LIMIT_AUTH_PER_MIN ?? (e.NS_DEMO_MODE ? 300 : 30),
+    },
+    auditLogRetentionDays: e.AUDIT_LOG_RETENTION_DAYS,
+    metricsToken: e.METRICS_TOKEN,
+    consentVersion: e.CONSENT_VERSION,
+    disclosure: {
+      grievanceOfficer: e.GRIEVANCE_OFFICER_NAME && e.GRIEVANCE_OFFICER_EMAIL
+        ? { name: e.GRIEVANCE_OFFICER_NAME, email: e.GRIEVANCE_OFFICER_EMAIL, phone: e.GRIEVANCE_OFFICER_PHONE ?? null }
+        : null,
+      auditReportUrl: e.AUDIT_REPORT_URL ?? null,
+      pilot: e.PILOT_NAME ?? null,
+    },
   };
 }

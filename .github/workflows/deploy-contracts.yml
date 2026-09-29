@@ -1,0 +1,78 @@
+# Manual contract deployment (plan §18.2): deploy → verify on mstscan → publish addresses → PR with
+# the manifests. Testnet only from CI. MAINNET is deliberately not deployable here: the mainnet
+# deployer is a hardware wallet (plan §16.2) and follows docs/runbooks/deploy-mst-mainnet.md; this
+# workflow can only verify and publish an existing mainnet manifest.
+name: Deploy contracts
+
+on:
+  workflow_dispatch:
+    inputs:
+      network:
+        description: Target network
+        type: choice
+        options: [mstTestnet, mstMainnet]
+        default: mstTestnet
+      action:
+        description: "deploy = deploy+verify+publish (testnet only); publish = verify+publish an existing manifest"
+        type: choice
+        options: [deploy, publish]
+        default: deploy
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.network == 'mstMainnet' && 'prod' || 'staging' }} # required reviewers on prod
+    steps:
+      - name: Refuse a mainnet deploy from CI
+        if: inputs.network == 'mstMainnet' && inputs.action == 'deploy'
+        run: |
+          echo "::error::Mainnet is deployed from a hardware wallet — see docs/runbooks/deploy-mst-mainnet.md"
+          exit 1
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: Pre-flight (build + opcode guard + tests)
+        run: |
+          pnpm --filter @namma-seva/contracts build
+          pnpm --filter @namma-seva/contracts test
+      - name: Deploy (testnet)
+        if: inputs.action == 'deploy'
+        env:
+          DEPLOYER_PRIVATE_KEY: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
+          MST_TESTNET_RPC: ${{ vars.MST_TESTNET_RPC }}
+        run: pnpm --filter @namma-seva/contracts deploy:mst-testnet
+      - name: Verify on mstscan
+        env:
+          DEPLOYER_PRIVATE_KEY: ${{ secrets.DEPLOYER_PRIVATE_KEY || '0x0000000000000000000000000000000000000000000000000000000000000001' }}
+          MST_TESTNET_RPC: ${{ vars.MST_TESTNET_RPC }}
+          MST_MAINNET_RPC: ${{ vars.MST_MAINNET_RPC }}
+        run: pnpm --filter @namma-seva/contracts ${{ inputs.network == 'mstMainnet' && 'verify:mst-mainnet' || 'verify:mst-testnet' }}
+      - name: Publish addresses (docs + embedded manifest)
+        env:
+          DEPLOYER_PRIVATE_KEY: "0x0000000000000000000000000000000000000000000000000000000000000001"
+          MST_TESTNET_RPC: ${{ vars.MST_TESTNET_RPC }}
+          MST_MAINNET_RPC: ${{ vars.MST_MAINNET_RPC }}
+        run: |
+          pnpm --filter @namma-seva/contracts ${{ inputs.network == 'mstMainnet' && 'publish-addresses:mst-mainnet' || 'publish-addresses:mst-testnet' }}
+          pnpm --filter @namma-seva/contracts export-abis
+      - uses: peter-evans/create-pull-request@v7
+        with:
+          branch: deploy/${{ inputs.network }}-${{ github.run_number }}
+          title: "chore(deploy): ${{ inputs.network }} contract manifests"
+          commit-message: "chore(deploy): ${{ inputs.network }} contract manifests"
+          body: |
+            Manifests, verified addresses and regenerated `@namma-seva/chain` deployments for **${{ inputs.network }}**.
+
+            Before merging, check every contract shows *Verified* on the explorer and the commit hash in
+            `docs/deployments/${{ inputs.network }}.md` matches the reviewed release.
+          add-paths: |
+            packages/contracts/deployments/*.json
+            packages/chain/deployments/*.json
+            packages/chain/src/*
+            docs/deployments/*.md

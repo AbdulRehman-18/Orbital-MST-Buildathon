@@ -16,9 +16,11 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "migrate": "node --enable-source-maps ./dist/migrate.mjs",
-    "demo:seed": "tsx src/demo/seed.ts"
+    "demo:seed": "tsx src/demo/seed.ts",
+    "kms:address": "tsx src/relayer/kms-address.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-kms": "^3.1141.0",
     "@namma-seva/api-zod": "workspace:*",
     "@namma-seva/chain": "workspace:*",
     "@namma-seva/db": "workspace:*",

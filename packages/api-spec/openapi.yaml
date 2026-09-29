@@ -25,6 +25,7 @@ tags:
   - name: tenders
   - name: chain
   - name: public
+  - name: privacy
 components:
   securitySchemes:
     bearer:
@@ -139,7 +140,12 @@ components:
       type: object
       properties:
         phone: { type: string, minLength: 10, maxLength: 16 }
-      required: [phone]
+        consentVersion:
+          type: string
+          minLength: 1
+          maxLength: 32
+          description: Version of the Privacy Notice the citizen accepted (DPDP Act 2023). Must equal the server's current version.
+      required: [phone, consentVersion]
     OtpSendResponse:
       type: object
       properties:
@@ -152,7 +158,136 @@ components:
       properties:
         phone: { type: string, minLength: 10, maxLength: 16 }
         code: { type: string, pattern: "^[0-9]{6}$" }
-      required: [phone, code]
+        consentVersion:
+          type: string
+          minLength: 1
+          maxLength: 32
+          description: Privacy Notice version accepted; recorded against the account on success.
+        lang: { type: string, enum: [en, kn, ta, hi], description: Language the notice was shown in. }
+      required: [phone, code, consentVersion]
+    ConsentRecord:
+      type: object
+      properties:
+        purpose: { type: string }
+        version: { type: string }
+        lang: { type: string }
+        acceptedAt: { type: string, format: date-time }
+        withdrawnAt: { type: [string, "null"], format: date-time }
+      required: [purpose, version, lang, acceptedAt, withdrawnAt]
+    MyData:
+      type: object
+      description: Everything Namma Seva holds off-chain about the signed-in user (DPDP Act 2023 right of access).
+      properties:
+        exportedAt: { type: string, format: date-time }
+        account:
+          type: object
+          properties:
+            id: { type: string, format: uuid }
+            role: { $ref: "#/components/schemas/Role" }
+            walletAddress: { type: [string, "null"] }
+            hasPhone: { type: boolean, description: Whether a phone-number hash is on file (the number itself is never stored). }
+            preferredLang: { type: string }
+            createdAt: { type: string, format: date-time }
+            lastLoginAt: { type: [string, "null"], format: date-time }
+          required: [id, role, walletAddress, hasPhone, preferredLang, createdAt, lastLoginAt]
+        consents:
+          type: array
+          items: { $ref: "#/components/schemas/ConsentRecord" }
+        grievances:
+          type: array
+          description: Grievances filed under this citizen's anonymous code. Public and on-chain.
+          items:
+            type: object
+            properties:
+              id: { type: integer }
+              projectId: { type: integer }
+              category: { type: string }
+              status: { type: string }
+              createdAt: { type: string, format: date-time }
+            required: [id, projectId, category, status, createdAt]
+        upvotes: { type: integer }
+        notice: { type: string }
+      required: [exportedAt, account, consents, grievances, upvotes, notice]
+    ErasureResult:
+      type: object
+      properties:
+        erased: { type: boolean }
+        consentsDeleted: { type: integer }
+        sessionsRevoked: { type: integer }
+      required: [erased, consentsDeleted, sessionsRevoked]
+    TransparencyContract:
+      type: object
+      properties:
+        name: { type: string }
+        address: { type: string }
+        implementation: { type: [string, "null"] }
+        explorerUrl: { type: [string, "null"] }
+      required: [name, address, implementation, explorerUrl]
+    Transparency:
+      type: object
+      description: Public trust report — verified addresses, who holds admin power, and the network's trust assumptions.
+      properties:
+        network:
+          type: object
+          properties:
+            name: { type: string }
+            chainId: { type: integer }
+            explorerUrl: { type: string }
+            consensus: { type: string, description: "PoSA — a small, known validator set." }
+            testnet: { type: boolean }
+          required: [name, chainId, explorerUrl, consensus, testnet]
+        mode: { type: [string, "null"], enum: [LEDGER, ESCROW, null] }
+        deployment:
+          type: [object, "null"]
+          properties:
+            blockNumber: { type: integer }
+            commit: { type: string }
+            deployedAt: { type: string }
+          required: [blockNumber, commit, deployedAt]
+        contracts:
+          type: array
+          items: { $ref: "#/components/schemas/TransparencyContract" }
+        governance:
+          type: object
+          properties:
+            adminKind: { type: string, enum: [EOA, MULTISIG_TIMELOCK, UNKNOWN] }
+            adminHolder: { type: [string, "null"] }
+            multisig:
+              type: [object, "null"]
+              properties:
+                address: { type: string }
+                threshold: { type: integer }
+                owners: { type: array, items: { type: string } }
+              required: [address, threshold, owners]
+            timelockDelaySeconds: { type: [integer, "null"] }
+            paused: { type: [boolean, "null"] }
+            pausers:
+              type: array
+              description: Accounts that can trigger the emergency stop (PAUSER role).
+              items: { type: string }
+          required: [adminKind, adminHolder, multisig, timelockDelaySeconds, paused, pausers]
+        status:
+          type: object
+          properties:
+            headBlock: { type: [integer, "null"] }
+            indexedBlock: { type: [integer, "null"] }
+            lagBlocks: { type: [integer, "null"] }
+          required: [headBlock, indexedBlock, lagBlocks]
+        disclosure:
+          type: object
+          properties:
+            grievanceOfficer:
+              type: [object, "null"]
+              properties:
+                name: { type: string }
+                email: { type: string }
+                phone: { type: [string, "null"] }
+              required: [name, email, phone]
+            auditReportUrl: { type: [string, "null"] }
+            pilot: { type: [string, "null"], description: "Name of the pilot ward, when running as a pilot." }
+          required: [grievanceOfficer, auditReportUrl, pilot]
+        consentVersion: { type: string }
+      required: [network, mode, deployment, contracts, governance, status, disclosure, consentVersion]
     DemoLoginRequest:
       type: object
       properties:
@@ -777,6 +912,58 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
+  /me/data:
+    get:
+      operationId: exportMyData
+      tags: [privacy]
+      summary: Download all off-chain data held about the signed-in user
+      security: [{ bearer: [] }]
+      responses:
+        "200":
+          description: The user's data
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MyData" }
+        "401":
+          description: Not signed in
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    delete:
+      operationId: eraseMyData
+      tags: [privacy]
+      summary: Erase the signed-in citizen's off-chain personal data (right to erasure)
+      description: |
+        Deletes the phone-number hash, consent records and sessions. On-chain grievances and upvotes
+        are public and permanent but carry only an anonymous code, which is no longer linked to a person.
+      security: [{ bearer: [] }]
+      responses:
+        "200":
+          description: Erased
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErasureResult" }
+        "401":
+          description: Not signed in
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: Wallet roles are governed on-chain and cannot be erased here
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /transparency:
+    get:
+      operationId: getTransparency
+      tags: [public]
+      summary: Verified contract addresses, admin custody and trust assumptions
+      responses:
+        "200":
+          description: Report
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Transparency" }
   /auth/refresh:
     post:
       operationId: refreshSession

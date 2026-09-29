@@ -13,6 +13,8 @@ import { connect, disconnect, getConnection, signMessage, switchChain } from "wa
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createSiweMessage } from "viem/siwe";
 import { queryClient, setAccessToken } from "./api";
+import { CONSENT_VERSION } from "./consent";
+import i18n from "./i18n";
 import { burner } from "./burner";
 import { chain } from "./chain";
 import { wagmiConfig } from "./wagmi";
@@ -148,14 +150,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const sendCode = useCallback(async (phone: string) => {
-    const r = await sendOtp({ phone });
+    // The consent notice is shown (and accepted) in the login screen before this is ever called.
+    const r = await sendOtp({ phone, consentVersion: CONSENT_VERSION });
     return { devCode: r.devCode, expiresIn: r.expiresIn };
   }, []);
 
   const signInWithPhone = useCallback(
     async (phone: string, code: string, demoName?: string) => {
       await disconnect(wagmiConfig).catch(() => undefined);
-      const tokens = await verifyOtp({ phone, code });
+      const lang = ["en", "kn", "ta", "hi"].find((l) => l === i18n.language) as "en" | "kn" | "ta" | "hi" | undefined;
+      const tokens = await verifyOtp({ phone, code, consentVersion: CONSENT_VERSION, lang });
       localStorage.removeItem(DEMO_KEY_STORAGE);
       setDemoKey(null);
       if (demoName) localStorage.setItem(DEMO_NAME_STORAGE, demoName);

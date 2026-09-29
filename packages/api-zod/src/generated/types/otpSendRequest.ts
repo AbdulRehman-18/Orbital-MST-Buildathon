@@ -20,4 +20,10 @@ export interface OtpSendRequest {
      * @maxLength 16
      */
   phone: string;
+  /**
+     * Version of the Privacy Notice the citizen accepted (DPDP Act 2023). Must equal the server's current version.
+     * @minLength 1
+     * @maxLength 32
+     */
+  consentVersion: string;
 }

@@ -38,6 +38,25 @@ export const authSessions = pgTable(
   (t) => [index("auth_sessions_user_idx").on(t.userId)],
 );
 
+/**
+ * DPDP Act 2023 consent records (plan §17): one row per notice a user accepted. Holds no phone
+ * number — only the user id, so erasing the user erases the consent trail with it.
+ */
+export const consents = pgTable(
+  "consents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    purpose: text("purpose").notNull().default("phone-verification"),
+    /** Version of the Privacy Notice shown (date string, e.g. "2026-10-01"). */
+    version: text("version").notNull(),
+    lang: text("lang").notNull().default("en"),
+    acceptedAt: tsz("accepted_at").notNull().defaultNow(),
+    withdrawnAt: tsz("withdrawn_at"),
+  },
+  (t) => [index("consents_user_idx").on(t.userId)],
+);
+
 export const otpSessions = pgTable("otp_sessions", {
   phoneHash: bytes32("phone_hash").primaryKey(),
   codeHash: bytes32("code_hash").notNull(),

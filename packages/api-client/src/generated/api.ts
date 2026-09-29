@@ -37,6 +37,7 @@ import type {
   DemoConfig,
   DemoLoginRequest,
   Department,
+  ErasureResult,
   Error,
   ExportProjectsCsvParams,
   ExportProjectsJsonParams,
@@ -53,6 +54,7 @@ import type {
   ListTendersParams,
   Milestone,
   MilestoneWithProject,
+  MyData,
   OtpSendRequest,
   OtpSendResponse,
   OtpVerifyRequest,
@@ -76,6 +78,7 @@ import type {
   TenderDetail,
   TrackTxRequest,
   TrackedTx,
+  Transparency,
   TxHash,
   VerifyResult,
   Ward
@@ -599,6 +602,236 @@ export const useVerifyOtp = <TError = ErrorType<Error>,
       > => {
       return useMutation(getVerifyOtpMutationOptions(options));
     }
+
+export const getExportMyDataUrl = () => {
+
+
+
+
+  return `/api/me/data`
+}
+
+/**
+ * @summary Download all off-chain data held about the signed-in user
+ */
+export const exportMyData = async ( options?: Parameters<typeof customFetch>[1]): Promise<MyData> => {
+
+  return customFetch<MyData>(getExportMyDataUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getExportMyDataQueryKey = () => {
+    return [
+    `/api/me/data`
+    ] as const;
+    }
+
+
+export const getExportMyDataQueryOptions = <TData = Awaited<ReturnType<typeof exportMyData>>, TError = ErrorType<Error>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof exportMyData>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getExportMyDataQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof exportMyData>>> = ({ signal }) => exportMyData({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof exportMyData>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ExportMyDataQueryResult = NonNullable<Awaited<ReturnType<typeof exportMyData>>>
+export type ExportMyDataQueryError = ErrorType<Error>
+
+
+/**
+ * @summary Download all off-chain data held about the signed-in user
+ */
+
+export function useExportMyData<TData = Awaited<ReturnType<typeof exportMyData>>, TError = ErrorType<Error>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof exportMyData>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getExportMyDataQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getEraseMyDataUrl = () => {
+
+
+
+
+  return `/api/me/data`
+}
+
+/**
+ * Deletes the phone-number hash, consent records and sessions. On-chain grievances and upvotes
+ * are public and permanent but carry only an anonymous code, which is no longer linked to a person.
+ * @summary Erase the signed-in citizen's off-chain personal data (right to erasure)
+ */
+export const eraseMyData = async ( options?: Parameters<typeof customFetch>[1]): Promise<ErasureResult> => {
+
+  return customFetch<ErasureResult>(getEraseMyDataUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getEraseMyDataMutationKey = () => ['eraseMyData'] as const;
+
+export const getEraseMyDataMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof eraseMyData>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof eraseMyData>>, TError,void, TContext> => {
+
+const mutationKey = getEraseMyDataMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof eraseMyData>>, void> = () => {
+
+
+          return  eraseMyData(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type EraseMyDataMutationResult = NonNullable<Awaited<ReturnType<typeof eraseMyData>>>
+
+    export type EraseMyDataMutationError = ErrorType<Error>
+
+
+    /**
+ * @summary Erase the signed-in citizen's off-chain personal data (right to erasure)
+ */
+export const useEraseMyData = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof eraseMyData>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof eraseMyData>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getEraseMyDataMutationOptions(options));
+    }
+
+export const getGetTransparencyUrl = () => {
+
+
+
+
+  return `/api/transparency`
+}
+
+/**
+ * @summary Verified contract addresses, admin custody and trust assumptions
+ */
+export const getTransparency = async ( options?: Parameters<typeof customFetch>[1]): Promise<Transparency> => {
+
+  return customFetch<Transparency>(getGetTransparencyUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetTransparencyQueryKey = () => {
+    return [
+    `/api/transparency`
+    ] as const;
+    }
+
+
+export const getGetTransparencyQueryOptions = <TData = Awaited<ReturnType<typeof getTransparency>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTransparency>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetTransparencyQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getTransparency>>> = ({ signal }) => getTransparency({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getTransparency>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetTransparencyQueryResult = NonNullable<Awaited<ReturnType<typeof getTransparency>>>
+export type GetTransparencyQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Verified contract addresses, admin custody and trust assumptions
+ */
+
+export function useGetTransparency<TData = Awaited<ReturnType<typeof getTransparency>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTransparency>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetTransparencyQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getRefreshSessionUrl = () => {
 

@@ -39,11 +39,18 @@ export const NETWORK_SETTINGS: Record<string, NetworkSettings> = {
     grievance: { escalationThreshold: 5, maxPerDay: 3, responseSlaSeconds: WEEK },
     confirmations: 2,
   },
+  // Mainnet: values that must be a deliberate choice come from the environment so nothing
+  // placeholder can ship (scripts/deploy.ts refuses a zero treasury and anything short of 3-of-5).
   mstMainnet: {
     mode: "LEDGER",
-    treasury: "0x0000000000000000000000000000000000000000", // set the department treasury before mainnet
+    treasury: process.env.NS_TREASURY ?? "0x0000000000000000000000000000000000000000",
     grievance: { escalationThreshold: 25, maxPerDay: 3, responseSlaSeconds: WEEK },
-    governance: { owners: [], threshold: 3, timelockDelaySeconds: 48 * 60 * 60, handOver: true },
+    governance: {
+      owners: (process.env.NS_GOVERNANCE_OWNERS ?? "").split(",").map((a) => a.trim()).filter(Boolean),
+      threshold: 3,
+      timelockDelaySeconds: 48 * 60 * 60,
+      handOver: true,
+    },
     confirmations: 6,
   },
 };

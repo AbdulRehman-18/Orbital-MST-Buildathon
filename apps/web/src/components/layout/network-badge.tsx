@@ -1,5 +1,4 @@
 import { useTranslation } from "react-i18next";
-import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useChainStatus } from "@/lib/api";
 import { network } from "@/lib/chain";
@@ -20,16 +19,20 @@ export function NetworkBadge() {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Badge variant="outline" className="gap-1.5 font-mono">
+        <span className="text-muted-foreground hidden h-8 items-center gap-2 border px-2.5 font-mono text-[11px] xl:inline-flex">
           <span
-            className={cn("size-2 rounded-full", healthy ? "bg-emerald-500" : status.isError ? "bg-red-500" : "bg-amber-500", live.connected && "animate-pulse")}
+            className={cn(
+              "size-1.5 rounded-full",
+              healthy ? "bg-foreground" : status.isError ? "bg-destructive" : "border-foreground border bg-transparent",
+              live.connected && "animate-pulse",
+            )}
             aria-hidden="true"
           />
-          <span className="hidden sm:inline">{network.name}</span>
-          {head !== null && <span className="text-muted-foreground">#{head}</span>}
-        </Badge>
+          <span>{network.name}</span>
+          {head !== null && <span className="text-foreground tabular-nums">#{head}</span>}
+        </span>
       </TooltipTrigger>
-      <TooltipContent className="flex flex-col gap-0.5 text-xs">
+      <TooltipContent className="flex flex-col gap-0.5 font-mono text-xs">
         <span>
           {t("common.network")}: {network.name} · chain {network.id}
         </span>

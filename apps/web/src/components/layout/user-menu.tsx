@@ -26,7 +26,7 @@ export function UserMenu() {
     return (
       <Button size="sm" asChild>
         <Link href="/login">
-          <LogIn /> <span className="hidden sm:inline">{t("nav.signIn")}</span>
+          <LogIn /> <span>{t("nav.signIn")}</span>
         </Link>
       </Button>
     );
@@ -42,9 +42,9 @@ export function UserMenu() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="sm" className="gap-2 px-1.5">
           <Avatar className="size-7">
-            <AvatarFallback className="bg-primary/15 text-primary text-xs font-semibold">{initials}</AvatarFallback>
+            <AvatarFallback className="bg-foreground text-background font-mono text-[10px] font-medium">{initials}</AvatarFallback>
           </Avatar>
-          <span className="hidden max-w-32 truncate text-sm md:inline">{name}</span>
+          <span className="hidden max-w-32 truncate text-sm xl:inline">{name}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">

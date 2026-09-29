@@ -93,11 +93,18 @@ const codeHash = (phoneHash: string, code: string) => sha256Hex(`${phoneHash}:${
 /** `code` is returned so demo mode can show it on screen; never expose it otherwise. */
 export type SendResult = { ok: true; code: string } | { ok: false; reason: "rate_limited" };
 
-export async function sendOtp(db: Db, sender: OtpSender, e164: string, phoneHash: string): Promise<SendResult> {
+/** `maxPerHour` is lifted only in demo mode, where a presenter re-tries the same demo citizen repeatedly. */
+export async function sendOtp(
+  db: Db,
+  sender: OtpSender,
+  e164: string,
+  phoneHash: string,
+  maxPerHour = OTP_MAX_SENDS_PER_HOUR,
+): Promise<SendResult> {
   const now = new Date();
   const [existing] = await db.select().from(otpSessions).where(eq(otpSessions.phoneHash, phoneHash));
   const windowFresh = existing && now.getTime() - existing.windowStart.getTime() < 60 * 60 * 1000;
-  if (windowFresh && existing.sentCount >= OTP_MAX_SENDS_PER_HOUR) return { ok: false, reason: "rate_limited" };
+  if (windowFresh && existing.sentCount >= maxPerHour) return { ok: false, reason: "rate_limited" };
 
   const code = randomInt(0, 1_000_000).toString().padStart(6, "0");
   const values = {

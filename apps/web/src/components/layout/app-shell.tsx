@@ -1,17 +1,13 @@
 import { FlaskConical, TriangleAlert } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { useLocation } from "wouter";
 import { useConnection, useSwitchChain } from "wagmi";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { useDemo } from "@/lib/api";
 import { chain, network } from "@/lib/chain";
-import { AppSidebar } from "./app-sidebar";
-import { LanguageSwitcher } from "./language-switcher";
-import { NetworkBadge } from "./network-badge";
-import { ThemeToggle } from "./theme-toggle";
-import { UserMenu } from "./user-menu";
+import { Footer } from "./footer";
+import { TopNav } from "./top-nav";
 
 /** Wrong-network guard (plan §11.1): switch, falling back to wallet_addEthereumChain. */
 function WrongNetworkBanner() {
@@ -35,31 +31,32 @@ function DemoBanner() {
   const demo = useDemo();
   if (!demo.data?.enabled) return null;
   return (
-    <div className="bg-civic text-civic-foreground flex items-center justify-center gap-2 px-4 py-1 text-center text-xs font-medium">
+    <div className="bg-foreground text-background flex items-center justify-center gap-2 px-4 py-1.5 text-center font-mono text-[11px]">
       <FlaskConical className="size-3.5 shrink-0" /> {t("login.demoBanner")}
     </div>
   );
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
+  // The landing page lays out its own full-bleed sections; every other page gets the padded column.
+  const [location] = useLocation();
+  const bare = location === "/";
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset className="min-w-0">
-        <DemoBanner />
-        <header className="bg-background/80 sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b px-4 backdrop-blur">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
-          <div className="ml-auto flex items-center gap-1">
-            <NetworkBadge />
-            <LanguageSwitcher />
-            <ThemeToggle />
-            <UserMenu />
-          </div>
-        </header>
-        <WrongNetworkBanner />
-        <main className="flex-1 p-4 md:p-8">{children}</main>
-      </SidebarInset>
-    </SidebarProvider>
+    <div className="flex min-h-svh flex-col">
+      <a
+        href="#main"
+        className="bg-foreground text-background sr-only z-50 px-4 py-2 text-sm font-medium focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
+      >
+        {t("nav.skip")}
+      </a>
+      <DemoBanner />
+      <TopNav />
+      <WrongNetworkBanner />
+      <main id="main" className={bare ? "flex-1" : "flex-1 px-4 pt-6 pb-16 sm:px-6 md:pt-10"}>
+        {children}
+      </main>
+      <Footer />
+    </div>
   );
 }

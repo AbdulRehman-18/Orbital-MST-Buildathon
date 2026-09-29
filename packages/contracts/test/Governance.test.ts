@@ -150,6 +150,14 @@ describe("Governance: multisig + timelock (ADR 0006)", function () {
       );
     });
 
+    it("gives the multisig PAUSER too, so an emergency stop needs no timelock delay", async function () {
+      const d = await networkHelpers.loadFixture(fixture);
+      const PAUSER = await d.access.PAUSER_ROLE();
+      await handOverAdmin(d.access, await d.timelock.getAddress(), d.admin.address, await d.multisig.getAddress());
+      expect(await d.access.hasRole(PAUSER, await d.multisig.getAddress())).to.equal(true);
+      expect(await d.access.hasRole(PAUSER, await d.timelock.getAddress())).to.equal(true);
+    });
+
     it("upgrades then require multisig proposal + 48 h delay", async function () {
       const d = await networkHelpers.loadFixture(fixture);
       const [o1, o2, o3] = d.owners;
@@ -184,6 +192,89 @@ describe("Governance: multisig + timelock (ADR 0006)", function () {
       await networkHelpers.time.increase(DELAY);
       await viaMultisig(executeData);
       expect(await upgradesApi.erc1967.getImplementationAddress(proxy)).to.equal(newImpl);
+    });
+  });
+
+  describe("emergency pause and role rotation (rehearsal, plan §16.2)", function () {
+    async function handedOver() {
+      const d = await networkHelpers.loadFixture(fixture);
+      await handOverAdmin(d.access, await d.timelock.getAddress(), d.admin.address, await d.multisig.getAddress());
+      const [o1, o2, o3, o4] = d.owners;
+      const msAddr = await d.multisig.getAddress();
+      const tlAddr = await d.timelock.getAddress();
+      const propose = async (to: string, data: string, signers = [o1, o2, o3]) => {
+        const id = await d.multisig.transactionCount();
+        await d.multisig.connect(signers[0]).submit(to, 0, data);
+        for (const s of signers.slice(1)) await d.multisig.connect(s).confirm(id);
+        return { id, run: () => d.multisig.connect(signers[0]).execute(id) };
+      };
+      const viaTimelock = async (target: string, call: string) => {
+        const tl = d.timelock;
+        const salt = ethers.id(call + (await d.multisig.transactionCount()));
+        await (await propose(tlAddr, tl.interface.encodeFunctionData("schedule", [target, 0, call, ethers.ZeroHash, salt, DELAY]))).run();
+        return async () => {
+          await networkHelpers.time.increase(DELAY);
+          await (await propose(tlAddr, tl.interface.encodeFunctionData("execute", [target, 0, call, ethers.ZeroHash, salt]))).run();
+        };
+      };
+      return { ...d, o1, o2, o3, o4, msAddr, tlAddr, propose, viaTimelock };
+    }
+
+    it("3 of 5 owners stop the whole system immediately; a single owner cannot", async function () {
+      const d = await handedOver();
+      const pause = d.access.interface.encodeFunctionData("pause");
+      // One confirmation is not enough.
+      const lone = await d.propose(await d.access.getAddress(), pause, [d.o4]);
+      await expect(lone.run()).to.be.revertedWithCustomError(d.multisig, "NotEnoughConfirmations");
+
+      // Three are: no waiting period.
+      await d.multisig.connect(d.o1).confirm(lone.id);
+      await d.multisig.connect(d.o2).confirm(lone.id);
+      await lone.run();
+      expect(await d.access.paused()).to.equal(true);
+
+      // Every state-changing entry point now refuses (users cannot act during an incident).
+      await expect(d.registry.connect(d.official).approveProject(1)).to.be.revertedWithCustomError(d.registry, "SystemPaused");
+    });
+
+    it("resuming is ADMIN-only, so it goes through the timelock and cannot be rushed", async function () {
+      const d = await handedOver();
+      await (await d.propose(await d.access.getAddress(), d.access.interface.encodeFunctionData("pause"))).run();
+
+      // The multisig holds PAUSER, not ADMIN: it cannot unpause directly.
+      const direct = await d.propose(await d.access.getAddress(), d.access.interface.encodeFunctionData("unpause"));
+      await expect(direct.run()).to.be.revertedWithCustomError(d.multisig, "ExecutionFailed");
+      expect(await d.access.paused()).to.equal(true);
+
+      const finish = await d.viaTimelock(await d.access.getAddress(), d.access.interface.encodeFunctionData("unpause"));
+      expect(await d.access.paused()).to.equal(true); // scheduled, not yet executable
+      await finish();
+      expect(await d.access.paused()).to.equal(false);
+    });
+
+    it("rotates a role holder through multisig + timelock, and the old holder loses access", async function () {
+      const d = await handedOver();
+      const AUDITOR = await d.access.AUDITOR_ROLE();
+      const oldHolder = d.auditor1.address;
+      const replacement = d.outsider.address;
+      expect(await d.access.hasRole(AUDITOR, oldHolder)).to.equal(true);
+
+      const grant = await d.viaTimelock(await d.access.getAddress(), d.access.interface.encodeFunctionData("grantRole", [AUDITOR, replacement]));
+      await grant();
+      const revoke = await d.viaTimelock(await d.access.getAddress(), d.access.interface.encodeFunctionData("revokeRole", [AUDITOR, oldHolder]));
+      await revoke();
+
+      expect(await d.access.hasRole(AUDITOR, replacement)).to.equal(true);
+      expect(await d.access.hasRole(AUDITOR, oldHolder)).to.equal(false);
+    });
+
+    it("the old deployer key can neither pause nor rotate anything after handover", async function () {
+      const d = await handedOver();
+      await expect(d.access.connect(d.admin).pause()).to.be.revertedWithCustomError(d.access, "AccessControlUnauthorizedAccount");
+      await expect(d.access.connect(d.admin).grantRole(await d.access.AUDITOR_ROLE(), d.admin.address)).to.be.revertedWithCustomError(
+        d.access,
+        "AccessControlUnauthorizedAccount",
+      );
     });
   });
 });

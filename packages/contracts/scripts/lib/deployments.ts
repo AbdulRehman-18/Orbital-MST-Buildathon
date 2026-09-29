@@ -34,7 +34,8 @@ export type Deployment = {
 const EPHEMERAL = new Set(["hardhat"]);
 
 export function manifestPath(network: string) {
-  return path.join(CONTRACTS_ROOT, "deployments", `${network}.json`);
+  // NS_MANIFEST_DIR lets dry runs and rehearsals use a scratch manifest without touching the real one.
+  return path.join(process.env.NS_MANIFEST_DIR ?? path.join(CONTRACTS_ROOT, "deployments"), `${network}.json`);
 }
 
 export function readDeployment(network: string): Deployment {

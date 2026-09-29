@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { phoneHash } from "../src/lib/hash";
 import { makeTestApp } from "./helpers/app";
 
+const CONSENT = "2026-10-01";
 type T = Awaited<ReturnType<typeof makeTestApp>>;
 let t: T;
 
@@ -92,13 +93,13 @@ describe("SIWE", () => {
 
 describe("phone OTP", () => {
   it("signs a citizen in and stores only the phone hash", async () => {
-    await request(t.app).post("/api/auth/otp/send").send({ phone: "98450 12345" }).expect(200);
+    await request(t.app).post("/api/auth/otp/send").send({ phone: "98450 12345", consentVersion: CONSENT }).expect(200);
     const code = t.otp.last.get("+919845012345")!;
     expect(code).toMatch(/^\d{6}$/);
 
     const wrong = code === "000000" ? "111111" : "000000";
-    await request(t.app).post("/api/auth/otp/verify").send({ phone: "9845012345", code: wrong }).expect(401);
-    const res = await request(t.app).post("/api/auth/otp/verify").send({ phone: "+91 98450 12345", code }).expect(200);
+    await request(t.app).post("/api/auth/otp/verify").send({ phone: "9845012345", code: wrong, consentVersion: CONSENT }).expect(401);
+    const res = await request(t.app).post("/api/auth/otp/verify").send({ phone: "+91 98450 12345", code, consentVersion: CONSENT }).expect(200);
 
     const hash = phoneHash("+919845012345", "pepper");
     expect(res.body.user).toMatchObject({ role: "CITIZEN", citizenHash: hash, walletAddress: null });
@@ -107,24 +108,24 @@ describe("phone OTP", () => {
     expect(JSON.stringify(rows)).not.toContain("9845012345");
     expect(await t.db.select().from(otpSessions)).toHaveLength(0); // code consumed
 
-    await request(t.app).post("/api/auth/otp/verify").send({ phone: "9845012345", code }).expect(401);
+    await request(t.app).post("/api/auth/otp/verify").send({ phone: "9845012345", code, consentVersion: CONSENT }).expect(401);
   });
 
   it("locks the code after 5 wrong attempts", async () => {
-    await request(t.app).post("/api/auth/otp/send").send({ phone: "9845012345" }).expect(200);
+    await request(t.app).post("/api/auth/otp/send").send({ phone: "9845012345", consentVersion: CONSENT }).expect(200);
     const code = t.otp.last.get("+919845012345")!;
     const wrong = code === "000000" ? "111111" : "000000";
-    for (let i = 0; i < 5; i++) await request(t.app).post("/api/auth/otp/verify").send({ phone: "9845012345", code: wrong });
-    await request(t.app).post("/api/auth/otp/verify").send({ phone: "9845012345", code }).expect(401);
+    for (let i = 0; i < 5; i++) await request(t.app).post("/api/auth/otp/verify").send({ phone: "9845012345", code: wrong, consentVersion: CONSENT });
+    await request(t.app).post("/api/auth/otp/verify").send({ phone: "9845012345", code, consentVersion: CONSENT }).expect(401);
   });
 
   it("validates input and rate-limits sends", async () => {
-    const bad = await request(t.app).post("/api/auth/otp/send").send({ phone: "12345" }).expect(400);
+    const bad = await request(t.app).post("/api/auth/otp/send").send({ phone: "12345", consentVersion: CONSENT }).expect(400);
     expect(bad.body.error).toBe("bad_request");
     await request(t.app).post("/api/auth/otp/send").send({}).expect(400);
-    for (let i = 0; i < 3; i++) await request(t.app).post("/api/auth/otp/send").send({ phone: "9845012345" }).expect(200);
+    for (let i = 0; i < 3; i++) await request(t.app).post("/api/auth/otp/send").send({ phone: "9845012345", consentVersion: CONSENT }).expect(200);
     // 5 per 10 min per IP at the edge (the 1st bad-format request above counts too).
-    await request(t.app).post("/api/auth/otp/send").send({ phone: "9845012345" }).expect(429);
+    await request(t.app).post("/api/auth/otp/send").send({ phone: "9845012345", consentVersion: CONSENT }).expect(429);
   });
 });
 

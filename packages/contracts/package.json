@@ -27,7 +27,10 @@
     "smoke:mst-testnet": "hardhat run scripts/smokeTest.ts --network mstTestnet",
     "handover:mst-mainnet": "hardhat run scripts/handover.ts --network mstMainnet",
     "slither": "bash scripts/slither.sh",
-    "aderyn": "bash scripts/aderyn.sh"
+    "aderyn": "bash scripts/aderyn.sh",
+    "publish-addresses:mst-testnet": "hardhat run scripts/publishAddresses.ts --network mstTestnet",
+    "publish-addresses:mst-mainnet": "hardhat run scripts/publishAddresses.ts --network mstMainnet",
+    "multisig": "node --experimental-strip-types --no-warnings scripts/multisig.ts"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-ethers": "^4.2.0",

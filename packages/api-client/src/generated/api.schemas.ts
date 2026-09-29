@@ -128,6 +128,12 @@ export interface OtpSendRequest {
      * @maxLength 16
      */
   phone: string;
+  /**
+     * Version of the Privacy Notice the citizen accepted (DPDP Act 2023). Must equal the server's current version.
+     * @minLength 1
+     * @maxLength 32
+     */
+  consentVersion: string;
 }
 
 export interface OtpSendResponse {
@@ -137,6 +143,19 @@ export interface OtpSendResponse {
   devCode?: string;
 }
 
+/**
+ * Language the notice was shown in.
+ */
+export type OtpVerifyRequestLang = typeof OtpVerifyRequestLang[keyof typeof OtpVerifyRequestLang];
+
+
+export const OtpVerifyRequestLang = {
+  en: 'en',
+  kn: 'kn',
+  ta: 'ta',
+  hi: 'hi',
+} as const;
+
 export interface OtpVerifyRequest {
   /**
      * @minLength 10
@@ -145,6 +164,180 @@ export interface OtpVerifyRequest {
   phone: string;
   /** @pattern ^[0-9]{6}$ */
   code: string;
+  /**
+     * Privacy Notice version accepted; recorded against the account on success.
+     * @minLength 1
+     * @maxLength 32
+     */
+  consentVersion: string;
+  /** Language the notice was shown in. */
+  lang?: OtpVerifyRequestLang;
+}
+
+export interface ConsentRecord {
+  purpose: string;
+  version: string;
+  lang: string;
+  acceptedAt: string;
+  /** @nullable */
+  withdrawnAt: string | null;
+}
+
+export type MyDataAccount = {
+  id: string;
+  role: Role;
+  /** @nullable */
+  walletAddress: string | null;
+  /** Whether a phone-number hash is on file (the number itself is never stored). */
+  hasPhone: boolean;
+  preferredLang: string;
+  createdAt: string;
+  /** @nullable */
+  lastLoginAt: string | null;
+};
+
+export type MyDataGrievancesItem = {
+  id: number;
+  projectId: number;
+  category: string;
+  status: string;
+  createdAt: string;
+};
+
+/**
+ * Everything Namma Seva holds off-chain about the signed-in user (DPDP Act 2023 right of access).
+ */
+export interface MyData {
+  exportedAt: string;
+  account: MyDataAccount;
+  consents: ConsentRecord[];
+  /** Grievances filed under this citizen's anonymous code. Public and on-chain. */
+  grievances: MyDataGrievancesItem[];
+  upvotes: number;
+  notice: string;
+}
+
+export interface ErasureResult {
+  erased: boolean;
+  consentsDeleted: number;
+  sessionsRevoked: number;
+}
+
+export interface TransparencyContract {
+  name: string;
+  address: string;
+  /** @nullable */
+  implementation: string | null;
+  /** @nullable */
+  explorerUrl: string | null;
+}
+
+export type TransparencyNetwork = {
+  name: string;
+  chainId: number;
+  explorerUrl: string;
+  /** PoSA — a small, known validator set. */
+  consensus: string;
+  testnet: boolean;
+};
+
+/**
+ * @nullable
+ */
+export type TransparencyMode = typeof TransparencyMode[keyof typeof TransparencyMode] | null;
+
+
+export const TransparencyMode = {
+  LEDGER: 'LEDGER',
+  ESCROW: 'ESCROW',
+} as const;
+
+/**
+ * @nullable
+ */
+export type TransparencyDeployment = {
+  blockNumber: number;
+  commit: string;
+  deployedAt: string;
+} | null;
+
+export type TransparencyGovernanceAdminKind = typeof TransparencyGovernanceAdminKind[keyof typeof TransparencyGovernanceAdminKind];
+
+
+export const TransparencyGovernanceAdminKind = {
+  EOA: 'EOA',
+  MULTISIG_TIMELOCK: 'MULTISIG_TIMELOCK',
+  UNKNOWN: 'UNKNOWN',
+} as const;
+
+/**
+ * @nullable
+ */
+export type TransparencyGovernanceMultisig = {
+  address: string;
+  threshold: number;
+  owners: string[];
+} | null;
+
+export type TransparencyGovernance = {
+  adminKind: TransparencyGovernanceAdminKind;
+  /** @nullable */
+  adminHolder: string | null;
+  /** @nullable */
+  multisig: TransparencyGovernanceMultisig;
+  /** @nullable */
+  timelockDelaySeconds: number | null;
+  /** @nullable */
+  paused: boolean | null;
+  /** Accounts that can trigger the emergency stop (PAUSER role). */
+  pausers: string[];
+};
+
+export type TransparencyStatus = {
+  /** @nullable */
+  headBlock: number | null;
+  /** @nullable */
+  indexedBlock: number | null;
+  /** @nullable */
+  lagBlocks: number | null;
+};
+
+/**
+ * @nullable
+ */
+export type TransparencyDisclosureGrievanceOfficer = {
+  name: string;
+  email: string;
+  /** @nullable */
+  phone: string | null;
+} | null;
+
+export type TransparencyDisclosure = {
+  /** @nullable */
+  grievanceOfficer: TransparencyDisclosureGrievanceOfficer;
+  /** @nullable */
+  auditReportUrl: string | null;
+  /**
+     * Name of the pilot ward, when running as a pilot.
+     * @nullable
+     */
+  pilot: string | null;
+};
+
+/**
+ * Public trust report — verified addresses, who holds admin power, and the network's trust assumptions.
+ */
+export interface Transparency {
+  network: TransparencyNetwork;
+  /** @nullable */
+  mode: TransparencyMode;
+  /** @nullable */
+  deployment: TransparencyDeployment;
+  contracts: TransparencyContract[];
+  governance: TransparencyGovernance;
+  status: TransparencyStatus;
+  disclosure: TransparencyDisclosure;
+  consentVersion: string;
 }
 
 export interface DemoLoginRequest {

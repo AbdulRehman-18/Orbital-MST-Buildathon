@@ -1,0 +1,81 @@
+# Namma Seva web tier. Rendered by the nginx image's envsubst at start-up (templates dir), so the
+# CSP allow-lists are set per environment without rebuilding the image:
+#   NS_SERVER_NAME     public host name
+#   CSP_CONNECT_EXTRA  extra connect-src origins — the chain's public RPC(s) the browser talks to, e.g.
+#                      "https://mariorpc.mstblockchain.com https://craftrpc.mstblockchain.com"
+#   CSP_IMG_EXTRA      extra img-src origins — the IPFS gateway, e.g. "https://<name>.mypinata.cloud"
+# Only variables that are set are substituted, so nginx's own $variables are untouched.
+
+limit_req_zone $binary_remote_addr zone=ns_api:10m rate=20r/s;
+limit_req_zone $binary_remote_addr zone=ns_upload:10m rate=2r/s;
+limit_req_status 429;
+limit_conn_zone $binary_remote_addr zone=ns_conn:10m;
+
+# WebSocket upgrade for Socket.IO (live updates).
+map $http_upgrade $ns_connection_upgrade {
+  default upgrade;
+  ""      close;
+}
+
+server {
+  listen 80;
+  server_name ${NS_SERVER_NAME};
+  server_tokens off;
+  root /usr/share/nginx/html;
+
+  # ── Security headers (plan §18.1) ────────────────────────────────────────
+  # NB: never add `add_header` inside a location — nginx would then drop every header below.
+  add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; style-src-attr 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.tile.openstreetmap.org ${CSP_IMG_EXTRA}; connect-src 'self' wss: ${CSP_CONNECT_EXTRA}; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests" always;
+  add_header Strict-Transport-Security "max-age=63072000; includeSubDomains" always;
+  add_header X-Content-Type-Options nosniff always;
+  add_header X-Frame-Options DENY always;
+  add_header Referrer-Policy strict-origin-when-cross-origin always;
+  add_header Cross-Origin-Opener-Policy same-origin always;
+  add_header Permissions-Policy "camera=(self), geolocation=(self), microphone=(), payment=(), usb=()" always;
+
+  # Ordinary requests carry small JSON; proof uploads override this below.
+  client_max_body_size 1m;
+  limit_conn ns_conn 40;
+
+  gzip on;
+  gzip_types text/css application/javascript application/json image/svg+xml;
+  gzip_min_length 1024;
+
+  # Prometheus scrapes the API's port on the internal network — never through this public tier.
+  location = /metrics { return 404; }
+
+  # Proof photos: the API allows ≤ 5 files of ≤ 10 MB each and re-encodes every image (sharp).
+  location ~ ^/api/milestones/[^/]+/proof/upload$ {
+    client_max_body_size 55m;
+    client_body_timeout 60s;
+    limit_req zone=ns_upload burst=4 nodelay;
+    include /etc/nginx/ns-proxy.conf;
+  }
+
+  location /api/socket.io/ {
+    include /etc/nginx/ns-proxy.conf;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $ns_connection_upgrade;
+    proxy_read_timeout 1h;
+  }
+
+  location /api/ {
+    limit_req zone=ns_api burst=60 nodelay;
+    include /etc/nginx/ns-proxy.conf;
+  }
+
+  # Hashed build output: cache for a year.
+  location /assets/ {
+    expires 1y;
+    try_files $uri =404;
+  }
+
+  # The shell and service worker must always revalidate so a deploy reaches users promptly.
+  location ~ ^/(index\.html|sw\.js|registerSW\.js|theme-init\.js|manifest\.webmanifest)$ {
+    expires -1;
+  }
+
+  location / {
+    try_files $uri /index.html;
+  }
+}

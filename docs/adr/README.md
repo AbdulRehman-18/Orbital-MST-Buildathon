@@ -16,6 +16,7 @@ Format: Context → Decision → Consequences, plus the evidence behind it.
 | [0009](0009-cids-in-events.md) | IPFS CIDs in events, content hashes in storage | Accepted |
 | [0010](0010-backend-indexer-relayer.md) | Indexer, live updates and citizen signing keys | Accepted |
 | [0011](0011-demo-mode.md) | Demo mode: real flows with burner wallets | Accepted |
+| [0012](0012-hardening-and-compliance.md) | Phase 6: instant emergency stop, KMS custody, consent & erasure, retention, observability | Accepted |
 
 ## Plan §21 open questions — status
 

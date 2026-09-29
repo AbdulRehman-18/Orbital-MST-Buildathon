@@ -1,0 +1,94 @@
+# Alert rules (plan §18.3). Severity `critical` pages; `warning` goes to the team channel.
+# Thresholds line up with the app's own guards: RELAYER_MIN_BALANCE (10 MSTC) and the 60 s
+# readiness window on /api/ready.
+groups:
+  - name: namma-seva-chain
+    rules:
+      - alert: IndexerLagging
+        expr: indexer_lag_blocks > 20
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Indexer is {{ $value }} blocks behind the chain"
+          runbook: docs/runbooks/incident-response.md#indexer-lag
+      - alert: IndexerLagCritical
+        expr: indexer_lag_blocks > 200
+        for: 10m
+        labels: { severity: critical }
+        annotations:
+          summary: "Indexer is {{ $value }} blocks behind — citizens are seeing stale data"
+          runbook: docs/runbooks/incident-response.md#indexer-lag
+      - alert: IndexerStalled
+        expr: indexer_last_update_age_seconds > 120 or absent(indexer_last_update_age_seconds)
+        for: 3m
+        labels: { severity: critical }
+        annotations:
+          summary: "Indexer has not written its cursor for over 2 minutes (or never reported)"
+          runbook: docs/runbooks/incident-response.md#indexer-lag
+      - alert: RpcDown
+        expr: rpc_up == 0
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "The configured MST RPC endpoints are unreachable from the API"
+          runbook: docs/runbooks/incident-response.md#rpc
+      - alert: RpcSlow
+        expr: histogram_quantile(0.95, sum(rate(rpc_latency_ms_bucket[5m])) by (le)) > 2000
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "p95 RPC latency above 2 s"
+          runbook: docs/runbooks/incident-response.md#rpc
+
+  - name: namma-seva-relayer
+    rules:
+      - alert: RelayerLowBalance
+        expr: relayer_balance < 10
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Relayer {{ $labels.address }} holds {{ $value }} MSTC — top up"
+          runbook: docs/runbooks/relayer-key-rotation.md#funding
+      - alert: RelayerBalanceCritical
+        expr: relayer_balance < 2
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "Relayer {{ $labels.address }} is nearly out of gas ({{ $value }} MSTC) — grievances will fail"
+          runbook: docs/runbooks/relayer-key-rotation.md#funding
+      - alert: RelayerSpendHigh
+        expr: relayer_spent_today > 40
+        labels: { severity: warning }
+        annotations:
+          summary: "Relayer has spent {{ $value }} MSTC today — the default daily cap is 50"
+      - alert: RelayerFailures
+        expr: increase(tx_failures_total[15m]) > 5
+        labels: { severity: warning }
+        annotations:
+          summary: "{{ $value }} relayer jobs failed in 15 minutes"
+          runbook: docs/runbooks/incident-response.md#relayer
+
+  - name: namma-seva-api
+    rules:
+      - alert: ApiDown
+        expr: up{job="api"} == 0
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: "API is not answering scrapes"
+          runbook: docs/runbooks/incident-response.md#api
+      - alert: ApiErrorRate
+        expr: |
+          sum(rate(http_requests_total{status=~"5.."}[10m]))
+            / clamp_min(sum(rate(http_requests_total[10m])), 0.001) > 0.05
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "More than 5% of API requests are failing with 5xx"
+          runbook: docs/runbooks/incident-response.md#api
+      - alert: ApiSlow
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_ms_bucket[10m])) by (le)) > 1500
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "API p95 latency above 1.5 s"

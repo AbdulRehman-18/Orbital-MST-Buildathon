@@ -6,9 +6,11 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { TokenService, type SessionUser } from "../src/auth/tokens";
 import { Indexer } from "../src/indexer/indexer";
 import { csvCell } from "../src/routes/chain";
+import { withPhase } from "../src/routes/tenders";
 import { makeTestApp } from "./helpers/app";
 import { CITIZEN_A, CITIZEN_B, CONTRACTOR, OFFICIAL, seedLifecycle, ZERO } from "./helpers/fake-chain";
 
+const CONSENT = "2026-10-01";
 type T = Awaited<ReturnType<typeof makeTestApp>>;
 let t: T;
 
@@ -271,7 +273,7 @@ describe("demo endpoints", () => {
   it("expose the demo cast only in demo mode, and the OTP code on screen", async () => {
     const off = await request(t.app).get("/api/demo").expect(200);
     expect(off.body).toMatchObject({ enabled: false, mnemonic: null, accounts: [] });
-    expect((await request(t.app).post("/api/auth/otp/send").send({ phone: "9000000001" }).expect(200)).body.devCode).toBeUndefined();
+    expect((await request(t.app).post("/api/auth/otp/send").send({ phone: "9000000001", consentVersion: CONSENT }).expect(200)).body.devCode).toBeUndefined();
 
     const demo = await makeTestApp({ NS_DEMO_MODE: "true" });
     try {
@@ -281,7 +283,7 @@ describe("demo endpoints", () => {
         expect.arrayContaining(["ADMIN", "GOVT_OFFICIAL", "AUDITOR", "CONTRACTOR"]),
       );
       expect(on.body.accounts.some((a: { role: string }) => a.role === "RELAYER")).toBe(false);
-      const sent = await request(demo.app).post("/api/auth/otp/send").send({ phone: "9000000001" }).expect(200);
+      const sent = await request(demo.app).post("/api/auth/otp/send").send({ phone: "9000000001", consentVersion: CONSENT }).expect(200);
       expect(sent.body.devCode).toMatch(/^\d{6}$/);
     } finally {
       await demo.close();
@@ -321,9 +323,43 @@ describe("citizen grievances", () => {
       .expect(400);
     await request(t.app).post("/api/grievances").set("authorization", `Bearer ${citizen}`).send(body).expect(503);
   });
+
+  it("pin a site photo with its distance from the project, and only accept those photos on a grievance", async () => {
+    seedLifecycle(t.chain!);
+    t.chain!.mineEmpty(6);
+    await index();
+    const citizen = await tokenFor({ role: "CITIZEN", roles: ["CITIZEN"], citizenHash: id("c") });
+    const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==", "base64");
+    const upload = (fields: Record<string, string>) => {
+      const r = request(t.app).post("/api/grievances/photos").set("authorization", `Bearer ${citizen}`).attach("photo", PNG, { filename: "p.png", contentType: "image/png" });
+      for (const [k, v] of Object.entries(fields)) r.field(k, v);
+      return r;
+    };
+    const { body: project } = await request(t.app).get("/api/projects/1").expect(200);
+    const near = await upload({ projectId: "1", latE6: String(project.project.latE6 + 500), lngE6: String(project.project.lngE6) }).expect(201);
+    expect(near.body).toMatchObject({ projectId: 1, locationFrom: "device", nearSite: true });
+    expect(near.body.distanceM).toBeLessThan(100);
+    expect(near.body).not.toHaveProperty("latE6");
+    const none = await upload({ projectId: "1" }).expect(201);
+    expect(none.body).toMatchObject({ locationFrom: null, distanceM: null, nearSite: false });
+
+    const body = { projectId: 1, category: "QUALITY", text: "Potholes reappeared a week after resurfacing" };
+    const file = (photoCids: string[], projectId = 1) =>
+      request(t.app).post("/api/grievances").set("authorization", `Bearer ${citizen}`).send({ ...body, projectId, photoCids });
+    await file(["bafy-not-ours"]).expect(400);
+    await file([near.body.image]).expect(400); // the raw image, not the photo record
+    await file([near.body.cid], 2).expect(400); // a photo taken for another project
+    await file([near.body.cid]).expect(503); // valid photo; fails only on the missing relayer
+  });
 });
 
 describe("misc", () => {
+  it("tender phases follow the time they are given (chain time), not the server clock", () => {
+    const t = { status: "OPEN", commitDeadline: new Date(1_000), revealDeadline: new Date(2_000), updatedBlock: 1, cancelReasonHash: null } as unknown as Parameters<typeof withPhase>[0];
+    expect([500, 1_500, 2_500].map((now) => withPhase(t, now).phase)).toEqual(["COMMIT", "REVEAL", "AWAITING_AWARD"]);
+    expect(withPhase({ ...t, status: "AWARDED" }, 500).phase).toBe("CLOSED");
+  });
+
   it("csv cells are quoted and defused", () => {
     expect(csvCell('say "hi", ok')).toBe('"say ""hi"", ok"');
     expect(csvCell("=HYPERLINK(1)")).toBe("'=HYPERLINK(1)");

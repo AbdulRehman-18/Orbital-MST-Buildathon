@@ -1,3 +1,4 @@
+import type React from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
@@ -26,10 +27,12 @@ export function StatusBadge({ status, className }: { status: string; className?:
   return (
     <span
       className={cn(
-        "inline-flex w-fit shrink-0 items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium whitespace-nowrap",
+        // The raw status colour is too light for text on its own tint (WCAG AA), so the label is the
+        // same hue mixed toward black (light theme) or white (dark theme); dot and border keep the pure colour.
+        "inline-flex w-fit shrink-0 items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium whitespace-nowrap text-[color-mix(in_oklab,var(--status)_55%,black)] dark:text-[color-mix(in_oklab,var(--status)_55%,white)]",
         className,
       )}
-      style={{ borderColor: `${color}55`, backgroundColor: `${color}14`, color }}
+      style={{ "--status": color, borderColor: `${color}55`, backgroundColor: `${color}14` } as React.CSSProperties}
     >
       <span className="size-1.5 rounded-full" style={{ backgroundColor: color }} aria-hidden="true" />
       {t(`status.${status}`, { defaultValue: status })}

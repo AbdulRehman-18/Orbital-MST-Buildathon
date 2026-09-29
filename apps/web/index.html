@@ -8,7 +8,7 @@
       name="description"
       content="Namma Seva records every public infrastructure project, milestone, proof and payment on MST Blockchain so any citizen can verify how public money is spent."
     />
-    <meta name="theme-color" content="#c2410c" />
+    <meta name="theme-color" content="#ffffff" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta property="og:title" content="Namma Seva" />
     <meta property="og:description" content="Every rupee, on-chain. Every citizen, informed." />
@@ -17,17 +17,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+Kannada:wght@400;600;700&family=Noto+Sans+Tamil:wght@400;600;700&family=Noto+Sans+Devanagari:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+Kannada:wght@400;600;700&family=Noto+Sans+Tamil:wght@400;600;700&family=Noto+Sans+Devanagari:wght@400;600;700&family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <script>
-      // Apply the saved theme before first paint (see src/components/theme-provider.tsx).
-      (function () {
-        var t = localStorage.getItem("ns_theme");
-        var dark = t === "dark" || ((!t || t === "system") && matchMedia("(prefers-color-scheme: dark)").matches);
-        document.documentElement.classList.add(dark ? "dark" : "light");
-      })();
-    </script>
+    <!-- Applies the saved theme before first paint. External (not inline) so the CSP needs no script hashes. -->
+    <script src="/theme-init.js"></script>
   </head>
   <body>
     <div id="root"></div>

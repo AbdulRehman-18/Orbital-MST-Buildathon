@@ -8,7 +8,8 @@ import { concat, formatEther, Interface, parseEther, type Contract, type Provide
 import type { Logger } from "pino";
 import type { ChainContracts } from "../chain/contracts";
 import { interfaces } from "../chain/contracts";
-import { deriveCitizenWallet, forwarderDomain, signForwardRequest } from "./forwarder";
+import { forwarderDomain, HmacCitizenKeys, signForwardRequest, type CitizenKeyDeriver } from "./forwarder";
+import { metrics } from "../lib/metrics";
 import { PermanentError, type JobQueue, type RelayJobData } from "./queue";
 import type { TxSender } from "./sender";
 
@@ -26,7 +27,9 @@ export type RelayerOptions = {
   provider: Provider;
   contracts: ChainContracts;
   chainId: number;
-  rootPrivateKey: string;
+  /** Local HMAC root for citizen keys (dev/testnet). Ignored when `citizenKeys` is given. */
+  rootPrivateKey?: string;
+  citizenKeys?: CitizenKeyDeriver;
   sender: TxSender;
   logger: Logger;
   minBalance: string;
@@ -53,8 +56,11 @@ export class Relayer {
   private monitor?: NodeJS.Timeout;
   private readonly grievance: Contract;
   private readonly forwarder: Contract;
+  private readonly keys: CitizenKeyDeriver;
 
   constructor(private readonly o: RelayerOptions) {
+    if (!o.citizenKeys && !o.rootPrivateKey) throw new Error("Relayer needs `citizenKeys` or `rootPrivateKey`");
+    this.keys = o.citizenKeys ?? new HmacCitizenKeys(o.rootPrivateKey!);
     this.grievance = o.contracts.contract("GrievanceRegistry", o.provider);
     this.forwarder = o.contracts.contract("TrustedForwarder", o.provider);
   }
@@ -143,7 +149,7 @@ export class Relayer {
 
   process = async (data: RelayJobData): Promise<void> => {
     const { db } = this.o;
-    const signer = deriveCitizenWallet(this.o.rootPrivateKey, data.citizenHash).connect(this.o.provider);
+    const signer = (await this.keys.derive(data.citizenHash)).connect(this.o.provider);
 
     const registered = ((await this.grievance.citizenOfSigner(signer.address)) as string).toLowerCase();
     if (registered !== data.citizenHash.toLowerCase()) {
@@ -223,6 +229,7 @@ export class Relayer {
   };
 
   onFailed = async (data: RelayJobData, err: Error) => {
+    metrics.txFailures.inc({ kind: data.kind });
     await this.setStatus(data.jobId, { status: "failed", error: err.message.slice(0, 500) });
   };
 

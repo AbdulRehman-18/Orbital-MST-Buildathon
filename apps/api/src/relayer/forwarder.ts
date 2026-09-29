@@ -46,8 +46,8 @@ const CITIZEN_KEY_DOMAIN = "namma-seva/citizen-signer/v1";
 /**
  * Deterministic per-citizen signing key: HMAC-SHA256(rootKey, domain ‖ citizenHash). The key is
  * derived on demand from the relayer's key material and never stored or returned, so no extra
- * secret is configured (exit criterion: only the relayer key exists). When the relayer moves to KMS
- * (Phase 6) this becomes a KMS HMAC key.
+ * secret is configured (exit criterion: only the relayer key exists). With KMS custody the HMAC runs
+ * inside the KMS ({@link KmsCitizenKeys}) so the derivation secret never enters this process.
  */
 export function deriveCitizenWallet(rootPrivateKey: string, citizenHash: string): Wallet {
   const key = createHmac("sha256", Buffer.from(getBytes(rootPrivateKey)))
@@ -55,4 +55,29 @@ export function deriveCitizenWallet(rootPrivateKey: string, citizenHash: string)
     .update(Buffer.from(getBytes(citizenHash)))
     .digest();
   return new Wallet("0x" + key.toString("hex"));
+}
+
+/** Source of per-citizen signing keys: local HMAC (dev/testnet) or a KMS HMAC key (mainnet). */
+export interface CitizenKeyDeriver {
+  derive(citizenHash: string): Promise<Wallet>;
+}
+
+export class HmacCitizenKeys implements CitizenKeyDeriver {
+  constructor(private readonly rootPrivateKey: string) {}
+  async derive(citizenHash: string) {
+    return deriveCitizenWallet(this.rootPrivateKey, citizenHash);
+  }
+}
+
+/** HMAC-SHA256 done inside the KMS over `domain ‖ citizenHash` — the same message as the local path. */
+export class KmsCitizenKeys implements CitizenKeyDeriver {
+  constructor(
+    private readonly kms: { generateMac(keyId: string, message: Uint8Array): Promise<Uint8Array> },
+    private readonly keyId: string,
+  ) {}
+  async derive(citizenHash: string) {
+    const message = Buffer.concat([Buffer.from(CITIZEN_KEY_DOMAIN), Buffer.from(getBytes(citizenHash))]);
+    const mac = await this.kms.generateMac(this.keyId, message);
+    return new Wallet("0x" + Buffer.from(mac).toString("hex"));
+  }
 }

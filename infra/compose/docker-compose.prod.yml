@@ -1,0 +1,164 @@
+# Production / staging stack (plan §18): Postgres, Redis, migrations, API, indexer, web, plus the
+# observability stack under the `observability` profile.
+#
+#   cp infra/compose/prod.env.example infra/compose/prod.env   # fill in — never commit
+#   docker compose -f infra/compose/docker-compose.prod.yml --env-file infra/compose/prod.env up -d
+#   docker compose ... --profile observability up -d          # + Prometheus / Alertmanager / Grafana
+#
+# Images: namma-seva-api (API and indexer share it; only the command differs), namma-seva-web.
+# Terminate TLS in front of `web` (cloud LB / Caddy / Traefik) and set TRUST_PROXY=1.
+name: namma-seva
+
+x-api-env: &api-env
+  NODE_ENV: production
+  TRUST_PROXY: "1"
+  DATABASE_URL: postgresql://ns_user:${POSTGRES_PASSWORD}@postgres:5432/nammaseva
+  REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+# Container logs are the security log (CERT-In: keep 180 days). The local json-file driver only
+# rotates by size; ship stdout to durable storage with a ≥ 180-day lifecycle (CloudWatch, Loki, S3) —
+# see docs/compliance/cert-in.md — and swap the driver here (e.g. `awslogs`, `loki`).
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "50m", max-file: "20" }
+
+x-api-common: &api-common
+  logging: *logging
+  image: ${REGISTRY:-ghcr.io/namma-seva}/namma-seva-api:${TAG:-latest}
+  env_file: [prod.env]
+  environment: *api-env
+  restart: unless-stopped
+  read_only: true
+  tmpfs: [/tmp]
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: nammaseva
+      POSTGRES_USER: ns_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ns_user -d nammaseva"]
+      interval: 10s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?set REDIS_PASSWORD}"]
+    volumes: [redisdata:/data]
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
+      interval: 10s
+      retries: 10
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    restart: unless-stopped
+
+  # Release step: applies Drizzle migrations (idempotent) before the API or indexer start.
+  migrate:
+    <<: *api-common
+    command: ["node", "--enable-source-maps", "dist/migrate.mjs"]
+    restart: "no"
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  api:
+    <<: *api-common
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # Exactly one replica per network — the indexer takes a Postgres advisory lock (ADR 0004/0010).
+  indexer:
+    <<: *api-common
+    command: ["node", "--enable-source-maps", "dist/indexer.mjs", "run"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    deploy: { replicas: 1 }
+
+  web:
+    image: ${REGISTRY:-ghcr.io/namma-seva}/namma-seva-web:${TAG:-latest}
+    environment:
+      NS_SERVER_NAME: ${NS_SERVER_NAME:-_}
+      CSP_CONNECT_EXTRA: ${CSP_CONNECT_EXTRA:-https://testnetrpc.mstblockchain.com}
+      CSP_IMG_EXTRA: ${CSP_IMG_EXTRA:-}
+    logging: *logging
+    ports: ["${WEB_PORT:-8080}:80"]
+    depends_on: [api]
+    restart: unless-stopped
+    read_only: true
+    tmpfs: [/var/cache/nginx, /var/run, /tmp, /etc/nginx/conf.d]
+
+  # Nightly logical backup (plan §18.3). Restore drills: infra/scripts/restore-test.sh.
+  backup:
+    image: postgres:16-alpine
+    entrypoint: ["/bin/sh", "/scripts/backup-postgres.sh", "--loop"]
+    environment:
+      PGHOST: postgres
+      PGUSER: ns_user
+      PGDATABASE: nammaseva
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      BACKUP_DIR: /backups
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+      BACKUP_HOUR_UTC: ${BACKUP_HOUR_UTC:-20}   # 01:30 IST ≈ 20:00 UTC
+    volumes:
+      - backups:/backups
+      - ../scripts:/scripts:ro
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: unless-stopped
+
+  # ── Observability (profile) ───────────────────────────────────────────
+  prometheus:
+    profiles: [observability]
+    image: prom/prometheus:v2.55.1
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=30d"]
+    volumes:
+      - ../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - promdata:/prometheus
+    secrets: [metrics_token]
+    restart: unless-stopped
+
+  alertmanager:
+    profiles: [observability]
+    image: prom/alertmanager:v0.28.1
+    command: ["--config.file=/etc/alertmanager/alertmanager.yml"]
+    volumes: [../monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro]
+    secrets: [slack_webhook_url, smtp_password]
+    restart: unless-stopped
+
+  grafana:
+    profiles: [observability]
+    image: grafana/grafana:11.3.1
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+    volumes:
+      - ../monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafanadata:/var/lib/grafana
+    ports: ["127.0.0.1:3000:3000"]
+    restart: unless-stopped
+
+secrets:
+  metrics_token: { file: ../secrets/metrics_token }
+  slack_webhook_url: { file: ../secrets/slack_webhook_url }
+  smtp_password: { file: ../secrets/smtp_password }
+
+volumes:
+  pgdata:
+  redisdata:
+  backups:
+  promdata:
+  grafanadata:

@@ -1,7 +1,8 @@
 // Deterministic in-memory chain for indexer tests: blocks, logs from our real ABIs, reorgs, and
 // injectable getLogs failures. Implements only the Provider surface the indexer uses.
 import type { Deployment } from "@namma-seva/chain";
-import { id, type Log, type Provider } from "ethers";
+import { id, Interface, type InterfaceAbi, type Log, type Provider } from "ethers";
+import { nammaSevaMultisigAbi, nammaSevaTimelockAbi } from "@namma-seva/chain";
 import { interfaces, resolveContracts, type ChainContracts } from "../../src/chain/contracts";
 
 type ContractKey = keyof typeof interfaces;
@@ -47,6 +48,31 @@ export class FakeChain {
 
   stubCall(contract: ContractKey, fn: string, impl: (args: unknown[]) => unknown[]) {
     this.calls.set(`${contract}.${fn}`, impl);
+  }
+
+  /** Contracts outside the indexed set (multisig, timelock): address → interface + stubbed functions. */
+  private readonly extra = new Map<string, { iface: Interface; fns: Map<string, (args: unknown[]) => unknown[]> }>();
+  /** Accounts that are contracts, for `getCode`. */
+  readonly code = new Set<string>();
+
+  /** Registers the governance contracts in the deployment manifest with stubbed reads. */
+  withGovernance(opts: { multisig: string; timelock: string; owners: string[]; threshold: number; delaySeconds: number }) {
+    const dep = this.contracts.deployment.contracts as Record<string, { address: string }>;
+    dep.NammaSevaMultisig = { address: opts.multisig };
+    dep.NammaSevaTimelock = { address: opts.timelock };
+    this.extra.set(opts.multisig.toLowerCase(), {
+      iface: new Interface(nammaSevaMultisigAbi as InterfaceAbi),
+      fns: new Map<string, (args: unknown[]) => unknown[]>([
+        ["threshold", () => [opts.threshold]],
+        ["getOwners", () => [opts.owners]],
+      ]),
+    });
+    this.extra.set(opts.timelock.toLowerCase(), {
+      iface: new Interface(nammaSevaTimelockAbi as InterfaceAbi),
+      fns: new Map<string, (args: unknown[]) => unknown[]>([["getMinDelay", () => [BigInt(opts.delaySeconds)]]]),
+    });
+    this.code.add(opts.multisig.toLowerCase());
+    this.code.add(opts.timelock.toLowerCase());
   }
   receipts = new Map<string, { status: number; blockNumber: number }>();
 
@@ -124,7 +150,15 @@ export class FakeChain {
     },
     getTransactionReceipt: async (hash: string) => this.receipts.get(hash) ?? null,
     getBalance: async () => this.balance,
+    getCode: async (address: string) => (this.code.has(address.toLowerCase()) ? "0x6080" : "0x"),
     call: async (tx: { to: string; data: string }) => {
+      const other = this.extra.get(String(tx.to).toLowerCase());
+      if (other) {
+        const parsed = other.iface.parseTransaction({ data: tx.data })!;
+        const impl = other.fns.get(parsed.name);
+        if (!impl) throw new Error(`no stub for ${parsed.name} on ${tx.to}`);
+        return other.iface.encodeFunctionResult(parsed.fragment, impl([...parsed.args]));
+      }
       const contract = (Object.keys(ADDR) as ContractKey[]).find((k) => ADDR[k] === String(tx.to).toLowerCase());
       if (!contract) throw new Error(`call to unknown address ${tx.to}`);
       const iface = interfaces[contract];

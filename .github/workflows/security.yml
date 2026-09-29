@@ -1,0 +1,74 @@
+# Security gates (plan §16.1, Phase 6 §1): Slither + Aderyn on contracts, dependency audit, and an
+# OWASP ZAP baseline scan against staging. Runs on every PR touching code, weekly, and on demand.
+name: Security
+
+on:
+  pull_request:
+    paths: ["packages/contracts/**", "apps/**", "pnpm-lock.yaml", "infra/**"]
+  schedule:
+    - cron: "17 3 * * 1" # Mondays 08:47 IST
+  workflow_dispatch:
+    inputs:
+      zap_target:
+        description: "Staging URL for the ZAP baseline scan (leave empty to skip)"
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  slither:
+    name: Slither (fails on Medium+)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc, cache: pnpm }
+      - uses: astral-sh/setup-uv@v5
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @namma-seva/contracts slither
+
+  aderyn:
+    name: Aderyn (fails on High)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @namma-seva/contracts aderyn
+      # Aderyn's "High" bucket contains known false positives (docs/security/phase-2-static-analysis.md
+      # H-1…H-4). Fail only on a High whose title is not in the triaged allow-list.
+      - name: Fail on un-triaged High findings
+        run: node packages/contracts/scripts/aderynGate.mjs packages/contracts/reports/aderyn.md
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: aderyn-report, path: packages/contracts/reports/aderyn.md }
+
+  dependencies:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc, cache: pnpm }
+      - run: pnpm audit --audit-level high --prod
+      - uses: actions/dependency-review-action@v4
+        if: github.event_name == 'pull_request'
+        with: { fail-on-severity: high }
+
+  zap:
+    name: OWASP ZAP baseline
+    if: github.event_name == 'workflow_dispatch' && inputs.zap_target != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: zaproxy/action-baseline@v0.14.0
+        with:
+          target: ${{ inputs.zap_target }}
+          rules_file_name: infra/zap/rules.tsv
+          fail_action: true
+          cmd_options: "-a"

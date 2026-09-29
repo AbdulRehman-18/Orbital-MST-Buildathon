@@ -1,6 +1,6 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { lazy, Suspense } from "react";
-import { Route, Switch } from "wouter";
+import { Route, Switch, useLocation } from "wouter";
 import { WagmiProvider } from "wagmi";
 import { AppShell } from "@/components/layout/app-shell";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -20,11 +20,51 @@ const VerifyPage = lazy(() => import("@/pages/verify"));
 const LedgerPage = lazy(() => import("@/pages/ledger"));
 const TendersPage = lazy(() => import("@/pages/tenders"));
 const WardPage = lazy(() => import("@/pages/ward"));
+const TransparencyPage = lazy(() => import("@/pages/transparency"));
+const PrivacyPage = lazy(() => import("@/pages/legal").then((m) => ({ default: m.PrivacyPage })));
+const TermsPage = lazy(() => import("@/pages/legal").then((m) => ({ default: m.TermsPage })));
 const CitizenDashboard = lazy(() => import("@/pages/roles/citizen"));
 const OfficialDashboard = lazy(() => import("@/pages/roles/official"));
 const AuditorDashboard = lazy(() => import("@/pages/roles/auditor"));
 const ContractorDashboard = lazy(() => import("@/pages/roles/contractor"));
 const AdminDashboard = lazy(() => import("@/pages/roles/admin"));
+
+/** The sign-in screen is a full-bleed page of its own — no site header or footer around it. */
+function Routes() {
+  const [location] = useLocation();
+  if (location === "/login") {
+    return (
+      <Suspense fallback={<div className="min-h-svh bg-white" />}>
+        <LoginPage />
+      </Suspense>
+    );
+  }
+  return (
+    <AppShell>
+      <Suspense fallback={<Skeleton className="mx-auto h-96 w-full max-w-6xl" />}>
+        <Switch>
+          <Route path="/" component={HomePage} />
+          <Route path="/projects" component={ProjectsPage} />
+          <Route path="/projects/:id" component={ProjectDetailPage} />
+          <Route path="/verify" component={VerifyPage} />
+          <Route path="/ledger" component={LedgerPage} />
+          <Route path="/tenders" component={TendersPage} />
+          <Route path="/ward/:id" component={WardPage} />
+          <Route path="/transparency" component={TransparencyPage} />
+          <Route path="/privacy" component={PrivacyPage} />
+          <Route path="/terms" component={TermsPage} />
+          {/* One dashboard per role — the header only links the signed-in user's. */}
+          <Route path="/citizen" component={CitizenDashboard} />
+          <Route path="/official" component={OfficialDashboard} />
+          <Route path="/auditor" component={AuditorDashboard} />
+          <Route path="/contractor" component={ContractorDashboard} />
+          <Route path="/admin" component={AdminDashboard} />
+          <Route component={HomePage} />
+        </Switch>
+      </Suspense>
+    </AppShell>
+  );
+}
 
 export default function App() {
   return (
@@ -33,28 +73,8 @@ export default function App() {
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
             <TooltipProvider>
-              <AppShell>
-                <Suspense fallback={<Skeleton className="mx-auto h-96 w-full max-w-6xl" />}>
-                  <Switch>
-                    <Route path="/" component={HomePage} />
-                    <Route path="/login" component={LoginPage} />
-                    <Route path="/projects" component={ProjectsPage} />
-                    <Route path="/projects/:id" component={ProjectDetailPage} />
-                    <Route path="/verify" component={VerifyPage} />
-                    <Route path="/ledger" component={LedgerPage} />
-                    <Route path="/tenders" component={TendersPage} />
-                    <Route path="/ward/:id" component={WardPage} />
-                    {/* One dashboard per role — the sidebar only links the signed-in user's. */}
-                    <Route path="/citizen" component={CitizenDashboard} />
-                    <Route path="/official" component={OfficialDashboard} />
-                    <Route path="/auditor" component={AuditorDashboard} />
-                    <Route path="/contractor" component={ContractorDashboard} />
-                    <Route path="/admin" component={AdminDashboard} />
-                    <Route component={HomePage} />
-                  </Switch>
-                </Suspense>
-              </AppShell>
-              <Toaster richColors position="top-center" />
+              <Routes />
+              <Toaster position="top-center" />
             </TooltipProvider>
           </AuthProvider>
         </QueryClientProvider>

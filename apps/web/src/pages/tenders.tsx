@@ -15,7 +15,15 @@ const PHASE_KEY: Record<Tender["phase"], string> = {
   CLOSED: "tenders.closed",
 };
 
-export function TenderCard({ tender, projectTitle }: { tender: Tender; projectTitle?: string | null }) {
+export function TenderCard({
+  tender,
+  projectTitle,
+  footer,
+}: {
+  tender: Tender;
+  projectTitle?: string | null;
+  footer?: React.ReactNode;
+}) {
   const { t, i18n } = useTranslation();
   return (
     <Card className="gap-0 py-4">
@@ -33,13 +41,21 @@ export function TenderCard({ tender, projectTitle }: { tender: Tender; projectTi
         <div className="text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 text-xs">
           <span>{t("tenders.bids", { count: tender.bidCount })}</span>
           <span>{t("tenders.revealed", { count: tender.revealedCount })}</span>
-          <span>{t("tenders.commitBy", { when: formatDateTime(tender.commitDeadline, i18n.language) })}</span>
-          <span>{t("tenders.revealBy", { when: formatDateTime(tender.revealDeadline, i18n.language) })}</span>
+          <span>
+            {t("tenders.commitBy", { when: formatDateTime(tender.commitDeadline, i18n.language) })}
+          </span>
+          <span>
+            {t("tenders.revealBy", { when: formatDateTime(tender.revealDeadline, i18n.language) })}
+          </span>
         </div>
         {tender.awardedTo && (
           <p className="text-sm">
-            {t("tenders.winner")}: <AddressLink address={tender.awardedTo} /> · <Amount value={tender.winningBid} />
+            {t("tenders.winner")}: <AddressLink address={tender.awardedTo} /> ·{" "}
+            <Amount value={tender.winningBid} />
           </p>
+        )}
+        {footer && (
+          <div className="mt-1 flex flex-wrap items-center gap-2 border-t pt-3">{footer}</div>
         )}
       </CardContent>
     </Card>

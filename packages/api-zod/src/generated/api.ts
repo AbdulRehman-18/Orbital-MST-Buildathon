@@ -99,10 +99,13 @@ export const VerifySiweResponse = zod.object({
 export const sendOtpBodyPhoneMin = 10;
 export const sendOtpBodyPhoneMax = 16;
 
+export const sendOtpBodyConsentVersionMax = 32;
+
 
 
 export const SendOtpBody = zod.object({
-  "phone": zod.string().min(sendOtpBodyPhoneMin).max(sendOtpBodyPhoneMax)
+  "phone": zod.string().min(sendOtpBodyPhoneMin).max(sendOtpBodyPhoneMax),
+  "consentVersion": zod.string().min(1).max(sendOtpBodyConsentVersionMax).describe('Version of the Privacy Notice the citizen accepted (DPDP Act 2023). Must equal the server\'s current version.')
 })
 
 export const SendOtpResponse = zod.object({
@@ -119,11 +122,15 @@ export const verifyOtpBodyPhoneMin = 10;
 export const verifyOtpBodyPhoneMax = 16;
 
 export const verifyOtpBodyCodeRegExp = new RegExp('^[0-9]{6}$');
+export const verifyOtpBodyConsentVersionMax = 32;
+
 
 
 export const VerifyOtpBody = zod.object({
   "phone": zod.string().min(verifyOtpBodyPhoneMin).max(verifyOtpBodyPhoneMax),
-  "code": zod.string().regex(verifyOtpBodyCodeRegExp)
+  "code": zod.string().regex(verifyOtpBodyCodeRegExp),
+  "consentVersion": zod.string().min(1).max(verifyOtpBodyConsentVersionMax).describe('Privacy Notice version accepted; recorded against the account on success.'),
+  "lang": zod.enum(['en', 'kn', 'ta', 'hi']).optional().describe('Language the notice was shown in.')
 })
 
 export const VerifyOtpResponse = zod.object({
@@ -140,6 +147,104 @@ export const VerifyOtpResponse = zod.object({
   "demo": zod.boolean()
 })
 })
+
+
+/**
+ * @summary Download all off-chain data held about the signed-in user
+ */
+export const ExportMyDataResponse = zod.object({
+  "exportedAt": zod.coerce.date(),
+  "account": zod.object({
+  "id": zod.uuid(),
+  "role": zod.enum(['ADMIN', 'GOVT_OFFICIAL', 'AUDITOR', 'CONTRACTOR', 'CITIZEN', 'PUBLIC']),
+  "walletAddress": zod.string().nullable(),
+  "hasPhone": zod.boolean().describe('Whether a phone-number hash is on file (the number itself is never stored).'),
+  "preferredLang": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "lastLoginAt": zod.coerce.date().nullable()
+}),
+  "consents": zod.array(zod.object({
+  "purpose": zod.string(),
+  "version": zod.string(),
+  "lang": zod.string(),
+  "acceptedAt": zod.coerce.date(),
+  "withdrawnAt": zod.coerce.date().nullable()
+})),
+  "grievances": zod.array(zod.object({
+  "id": zod.int(),
+  "projectId": zod.int(),
+  "category": zod.string(),
+  "status": zod.string(),
+  "createdAt": zod.coerce.date()
+})).describe('Grievances filed under this citizen\'s anonymous code. Public and on-chain.'),
+  "upvotes": zod.int(),
+  "notice": zod.string()
+}).describe('Everything Namma Seva holds off-chain about the signed-in user (DPDP Act 2023 right of access).')
+
+
+/**
+ * Deletes the phone-number hash, consent records and sessions. On-chain grievances and upvotes
+ * are public and permanent but carry only an anonymous code, which is no longer linked to a person.
+ * @summary Erase the signed-in citizen's off-chain personal data (right to erasure)
+ */
+export const EraseMyDataResponse = zod.object({
+  "erased": zod.boolean(),
+  "consentsDeleted": zod.int(),
+  "sessionsRevoked": zod.int()
+})
+
+
+/**
+ * @summary Verified contract addresses, admin custody and trust assumptions
+ */
+export const GetTransparencyResponse = zod.object({
+  "network": zod.object({
+  "name": zod.string(),
+  "chainId": zod.int(),
+  "explorerUrl": zod.string(),
+  "consensus": zod.string().describe('PoSA — a small, known validator set.'),
+  "testnet": zod.boolean()
+}),
+  "mode": zod.union([zod.literal('LEDGER'),zod.literal('ESCROW'),zod.literal(null)]).nullable(),
+  "deployment": zod.object({
+  "blockNumber": zod.int(),
+  "commit": zod.string(),
+  "deployedAt": zod.string()
+}).nullable(),
+  "contracts": zod.array(zod.object({
+  "name": zod.string(),
+  "address": zod.string(),
+  "implementation": zod.string().nullable(),
+  "explorerUrl": zod.string().nullable()
+})),
+  "governance": zod.object({
+  "adminKind": zod.enum(['EOA', 'MULTISIG_TIMELOCK', 'UNKNOWN']),
+  "adminHolder": zod.string().nullable(),
+  "multisig": zod.object({
+  "address": zod.string(),
+  "threshold": zod.int(),
+  "owners": zod.array(zod.string())
+}).nullable(),
+  "timelockDelaySeconds": zod.int().nullable(),
+  "paused": zod.boolean().nullable(),
+  "pausers": zod.array(zod.string()).describe('Accounts that can trigger the emergency stop (PAUSER role).')
+}),
+  "status": zod.object({
+  "headBlock": zod.int().nullable(),
+  "indexedBlock": zod.int().nullable(),
+  "lagBlocks": zod.int().nullable()
+}),
+  "disclosure": zod.object({
+  "grievanceOfficer": zod.object({
+  "name": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string().nullable()
+}).nullable(),
+  "auditReportUrl": zod.string().nullable(),
+  "pilot": zod.string().nullable().describe('Name of the pilot ward, when running as a pilot.')
+}),
+  "consentVersion": zod.string()
+}).describe('Public trust report — verified addresses, who holds admin power, and the network\'s trust assumptions.')
 
 
 /**

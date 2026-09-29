@@ -11,9 +11,13 @@ import { demoAccount, demoWallet } from "./demo/accounts";
 import { createIpfs, devIpfsDir } from "./ipfs/ipfs";
 import { logger } from "./lib/logger";
 import { BullJobQueue, MemoryJobQueue } from "./relayer/queue";
+import { HmacCitizenKeys, KmsCitizenKeys } from "./relayer/forwarder";
+import { KmsSigner } from "./relayer/kms";
+import { createAwsKmsClient } from "./relayer/kms-aws";
 import { createWallet, Relayer } from "./relayer/relayer";
 import { MemoryNonceLock, RedisNonceLock, TxSender } from "./relayer/sender";
 import { connectChain, connectDb, type Chain } from "./runtime";
+import { startRetentionJob } from "./retention";
 import { createSocketServer } from "./socket/server";
 
 const config = loadConfig();
@@ -41,17 +45,26 @@ const relayerKey =
   config.relayer.privateKey ??
   (config.demoMnemonic ? demoWallet(config.demoMnemonic, demoAccount("relayer").index).privateKey : undefined);
 
+// Key custody: KMS on mainnet/staging (the key never enters this process); a hot key for dev/testnet.
 let relayer: Relayer | undefined;
-if (chain && relayerKey) {
-  const wallet = createWallet(relayerKey, chain.provider);
-  const lock = redis ? new RedisNonceLock(redis, `ns:relayer:${config.chainName}:${wallet.address}`) : new MemoryNonceLock();
-  const sender = new TxSender(wallet, lock, logger, config.relayer.gasBumpAfterMs);
+const kmsClient = config.relayer.kms
+  ? await createAwsKmsClient({ region: config.relayer.kms.region, endpoint: config.relayer.kms.endpoint })
+  : undefined;
+if (chain && (kmsClient || relayerKey)) {
+  const signer = kmsClient
+    ? await KmsSigner.create(kmsClient, config.relayer.kms!.keyId, chain.provider)
+    : createWallet(relayerKey!, chain.provider);
+  const citizenKeys = kmsClient
+    ? new KmsCitizenKeys(kmsClient, config.relayer.kms!.hmacKeyId)
+    : new HmacCitizenKeys(relayerKey!);
+  const lock = redis ? new RedisNonceLock(redis, `ns:relayer:${config.chainName}:${signer.address}`) : new MemoryNonceLock();
+  const sender = new TxSender(signer as typeof signer & { address: string }, lock, logger, config.relayer.gasBumpAfterMs);
   relayer = new Relayer({
     db,
     provider: chain.provider,
     contracts: chain.contracts,
     chainId: config.network.id,
-    rootPrivateKey: relayerKey,
+    citizenKeys,
     sender,
     logger,
     minBalance: config.relayer.minBalance,
@@ -62,11 +75,11 @@ if (chain && relayerKey) {
     ? new BullJobQueue(redis, relayer.process, relayer.onFailed, logger)
     : new MemoryJobQueue(relayer.process, relayer.onFailed, logger);
   const access = chain.contracts.contract("NammaSevaAccess", chain.provider);
-  const isRelayer = (await access.hasRole(await access.RELAYER_ROLE(), wallet.address)) as boolean;
-  if (!isRelayer) logger.error({ relayer: wallet.address }, "Relayer wallet lacks RELAYER_ROLE — grievances will fail");
+  const isRelayer = (await access.hasRole(await access.RELAYER_ROLE(), signer.address)) as boolean;
+  if (!isRelayer) logger.error({ relayer: signer.address }, "Relayer wallet lacks RELAYER_ROLE — grievances will fail");
   relayer.startMonitor();
 } else if (chain) {
-  logger.warn("RELAYER_PRIVATE_KEY not set — citizen grievances/upvotes are disabled");
+  logger.warn("No relayer key (RELAYER_KMS_KEY_ID / RELAYER_PRIVATE_KEY) — citizen grievances/upvotes are disabled");
 }
 
 const ctx: AppContext = {
@@ -94,6 +107,7 @@ const ctx: AppContext = {
 };
 
 const stopAnomalyEngine = startAnomalyEngine(db, logger);
+const stopRetention = startRetentionJob(db, logger, config.auditLogRetentionDays);
 const app = createApp(ctx);
 const server = createServer(app);
 const sockets = createSocketServer(server, config.corsOrigins, logger);
@@ -119,6 +133,7 @@ async function shutdown(signal: string) {
   await sockets.io.close();
   stopListening();
   stopAnomalyEngine();
+  stopRetention();
   await relayer?.close();
   await redis?.quit();
   await pool.end();

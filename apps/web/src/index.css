@@ -1,99 +1,73 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Nothing ever sets `.dark`, so leftover `dark:` utilities are inert (and never follow the OS). */
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Namma Seva palette — civic saffron (primary) + teal (civic accent) on neutral surfaces.
- * Primary/civic pairs are Tailwind orange-700 / teal-700 on white in light mode (≥ 5:1, WCAG AA)
- * and orange-500 / teal-400 on near-black in dark mode.
+ * Namma Seva theme — strict monochrome, on-chain minimalism.
+ * Pure white surfaces, ink text, hairline borders, square corners, Geist + Geist Mono. There is no
+ * dark theme: the whole app is light. The only colour left is semantic (status / destructive).
+ * Text greys are chosen for ≥ 4.5:1 (WCAG AA) on white.
  */
 :root {
-  --radius: 0.625rem;
-  --background: oklch(0.99 0.004 75);
-  --foreground: oklch(0.205 0.01 60);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.205 0.01 60);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.205 0.01 60);
-  --primary: oklch(0.553 0.195 38.402);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.967 0.008 75);
-  --secondary-foreground: oklch(0.269 0.01 60);
-  --muted: oklch(0.967 0.006 75);
-  --muted-foreground: oklch(0.5 0.012 60);
-  --accent: oklch(0.953 0.051 180.801);
-  --accent-foreground: oklch(0.386 0.063 188.416);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.915 0.008 75);
-  --input: oklch(0.915 0.008 75);
-  --ring: oklch(0.553 0.195 38.402);
-  --civic: oklch(0.511 0.096 186.391);
-  --civic-foreground: oklch(0.985 0 0);
-  --success: oklch(0.527 0.154 150.069);
-  --warning: oklch(0.666 0.179 58.318);
-  --chart-1: oklch(0.553 0.195 38.402);
-  --chart-2: oklch(0.511 0.096 186.391);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.398 0.07 227.392);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.985 0.005 75);
-  --sidebar-foreground: oklch(0.205 0.01 60);
-  --sidebar-primary: oklch(0.553 0.195 38.402);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.953 0.051 180.801);
-  --sidebar-accent-foreground: oklch(0.386 0.063 188.416);
-  --sidebar-border: oklch(0.915 0.008 75);
-  --sidebar-ring: oklch(0.553 0.195 38.402);
-}
-
-.dark {
-  --background: oklch(0.16 0.008 60);
-  --foreground: oklch(0.975 0.004 75);
-  --card: oklch(0.205 0.01 60);
-  --card-foreground: oklch(0.975 0.004 75);
-  --popover: oklch(0.205 0.01 60);
-  --popover-foreground: oklch(0.975 0.004 75);
-  --primary: oklch(0.705 0.213 47.604);
-  --primary-foreground: oklch(0.16 0.008 60);
-  --secondary: oklch(0.269 0.01 60);
-  --secondary-foreground: oklch(0.975 0.004 75);
-  --muted: oklch(0.269 0.01 60);
-  --muted-foreground: oklch(0.72 0.01 60);
-  --accent: oklch(0.277 0.046 192.524);
-  --accent-foreground: oklch(0.91 0.096 180.426);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.705 0.213 47.604);
-  --civic: oklch(0.777 0.152 181.912);
-  --civic-foreground: oklch(0.16 0.008 60);
-  --success: oklch(0.723 0.219 149.579);
-  --warning: oklch(0.795 0.184 86.047);
-  --chart-1: oklch(0.705 0.213 47.604);
-  --chart-2: oklch(0.777 0.152 181.912);
-  --chart-3: oklch(0.828 0.189 84.429);
-  --chart-4: oklch(0.685 0.169 237.323);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.19 0.009 60);
-  --sidebar-foreground: oklch(0.975 0.004 75);
-  --sidebar-primary: oklch(0.705 0.213 47.604);
-  --sidebar-primary-foreground: oklch(0.16 0.008 60);
-  --sidebar-accent: oklch(0.277 0.046 192.524);
-  --sidebar-accent-foreground: oklch(0.91 0.096 180.426);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.705 0.213 47.604);
+  color-scheme: light;
+  --radius: 0.5rem;
+  --background: #ffffff;
+  --foreground: #0a0a0a;
+  --card: #ffffff;
+  --card-foreground: #0a0a0a;
+  --popover: #ffffff;
+  --popover-foreground: #0a0a0a;
+  --primary: #0a0a0a;
+  --primary-foreground: #ffffff;
+  --secondary: #f5f5f5;
+  --secondary-foreground: #0a0a0a;
+  --muted: #f5f5f5;
+  --muted-foreground: #5c5c5c;
+  --accent: #f5f5f5;
+  --accent-foreground: #0a0a0a;
+  --destructive: #b3261e;
+  --border: #e6e6e6;
+  --input: #cfcfcf;
+  --ring: #0a0a0a;
+  --brand: #0a0a0a;
+  --brand-foreground: #ffffff;
+  --civic: #0a0a0a;
+  --civic-foreground: #ffffff;
+  --success: #0a0a0a;
+  --warning: #5c5c5c;
+  --chart-1: #0a0a0a;
+  --chart-2: #3d3d3d;
+  --chart-3: #6b6b6b;
+  --chart-4: #9a9a9a;
+  --chart-5: #c4c4c4;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #0a0a0a;
+  --sidebar-primary: #0a0a0a;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f5f5f5;
+  --sidebar-accent-foreground: #0a0a0a;
+  --sidebar-border: #e6e6e6;
+  --sidebar-ring: #0a0a0a;
 }
 
 @theme inline {
   --font-sans:
-    "Noto Sans", "Noto Sans Kannada", "Noto Sans Tamil", "Noto Sans Devanagari", ui-sans-serif,
-    system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+    "Geist", "Noto Sans", "Noto Sans Kannada", "Noto Sans Tamil", "Noto Sans Devanagari", ui-sans-serif, system-ui,
+    sans-serif;
+  --font-display:
+    "Geist", "Noto Sans", "Noto Sans Kannada", "Noto Sans Tamil", "Noto Sans Devanagari", ui-sans-serif, system-ui,
+    sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  /* Soft but restrained: 8px controls, 16-24px panels. */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-3xl: 24px;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -112,6 +86,8 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
   --color-civic: var(--civic);
   --color-civic-foreground: var(--civic-foreground);
   --color-success: var(--success);
@@ -137,5 +113,111 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "ss01", "cv11";
   }
+  h1,
+  h2,
+  h3 {
+    @apply tracking-tight;
+  }
+  ::selection {
+    background: #0a0a0a;
+    color: #ffffff;
+  }
+  :focus-visible {
+    outline: 1px solid #0a0a0a;
+    outline-offset: 2px;
+  }
+}
+
+/* ── Monochrome utilities ───────────────────────────────────────────────── */
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+/* Icon tones: soft tile + saturated glyph. Colour is reserved for meaning (category, role, state). */
+.tone {
+  background: var(--tone-bg);
+  color: var(--tone-fg);
+}
+.tone-blue { --tone-bg: #e8f0ff; --tone-fg: #1d4ed8; }
+.tone-sky { --tone-bg: #e2f3fd; --tone-fg: #0369a1; }
+.tone-teal { --tone-bg: #dcf4f0; --tone-fg: #0f766e; }
+.tone-green { --tone-bg: #e5f6ea; --tone-fg: #15803d; }
+.tone-amber { --tone-bg: #fdf0c8; --tone-fg: #a14a08; }
+.tone-rose { --tone-bg: #ffe6ea; --tone-fg: #be123c; }
+.tone-violet { --tone-bg: #efe9ff; --tone-fg: #6d28d9; }
+.tone-slate { --tone-bg: #eeeeee; --tone-fg: #4a4a4a; }
+
+/* Faint square grid behind the hero; fades out toward the edges. */
+.bg-grid {
+  background-image:
+    linear-gradient(to right, rgb(10 10 10 / 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(10 10 10 / 0.05) 1px, transparent 1px);
+  background-size: 64px 64px;
+  background-position: center top;
+  mask-image: radial-gradient(ellipse 75% 85% at 50% 25%, black 20%, transparent 100%);
+}
+
+/* Fine dot lattice; fades toward the edges. Use on a positioned, aria-hidden layer. */
+.bg-lattice {
+  background-image: radial-gradient(rgb(10 10 10 / 0.2) 1px, transparent 1.2px);
+  background-size: 22px 22px;
+  mask-image: radial-gradient(ellipse 80% 75% at 50% 45%, black 25%, transparent 100%);
+}
+.bg-lattice-inverse {
+  background-image: radial-gradient(rgb(255 255 255 / 0.22) 1px, transparent 1.2px);
+  background-size: 22px 22px;
+  mask-image: radial-gradient(ellipse 85% 80% at 50% 50%, black 20%, transparent 100%);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-rise {
+  animation: rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise {
+    animation: none !important;
+  }
+}
+
+/* ── Maps (Leaflet) ─────────────────────────────────────────────────────── */
+
+.leaflet-container {
+  font-family: var(--font-sans);
+}
+/* Landing map: grey base tiles so the coloured status markers are what you see. */
+.mono-map .leaflet-tile-pane {
+  filter: grayscale(1) contrast(1.05);
+}
+.leaflet-control-zoom {
+  overflow: hidden;
+  border: 1px solid var(--border) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+.leaflet-control-zoom a {
+  width: 34px !important;
+  height: 34px !important;
+  line-height: 34px !important;
+  border: 0 !important;
+  background: var(--card) !important;
+  color: var(--foreground) !important;
+}
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border: 1px solid var(--border);
 }
