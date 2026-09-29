@@ -158,7 +158,12 @@ export function GpsDiffMap({ site, proof, className }: { site: [number, number];
 /** Tap-to-place marker for the create-project form. */
 export function LocationPicker({ value, onChange, className }: { value: [number, number] | null; onChange: (v: [number, number]) => void; className?: string }) {
   function Clicks() {
+    const map = useMap();
     useMapEvents({ click: (e) => onChange([e.latlng.lat, e.latlng.lng]) });
+    // Fly to the pin when it is set from outside (address search); taps keep the current zoom.
+    useEffect(() => {
+      if (value) map.flyTo(value, Math.max(map.getZoom(), 16));
+    }, [value?.[0], value?.[1]]);
     return null;
   }
   return (

@@ -20,6 +20,7 @@ import {
   LayoutDashboard,
   ListPlus,
   Lock,
+  MapPin,
   Plus,
   UserPlus,
   Wallet,
@@ -976,6 +977,8 @@ function CreateProjectSheet({
   });
   const [pos, setPos] = useState<[number, number] | null>(null);
   const [busy, setBusy] = useState(false);
+  const [finding, setFinding] = useState(false);
+  const [notFound, setNotFound] = useState(false);
   const set = (k: keyof typeof f) => (v: string) => setF((s) => ({ ...s, [k]: v }));
 
   let budget: bigint | null = null;
@@ -992,6 +995,24 @@ function CreateProjectSheet({
     budget &&
     budget > 0n &&
     f.endDate > f.startDate;
+
+  // Explicit search only (Nominatim's policy forbids search-as-you-type); biased to India.
+  async function findOnMap() {
+    const q = f.location.trim();
+    if (!q) return;
+    setFinding(true);
+    setNotFound(false);
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=in&q=${encodeURIComponent(q)}`;
+      const [hit] = (await (await fetch(url)).json()) as { lat: string; lon: string }[];
+      if (hit) setPos([Number(hit.lat), Number(hit.lon)]);
+      else setNotFound(true);
+    } catch {
+      setNotFound(true);
+    } finally {
+      setFinding(false);
+    }
+  }
 
   async function submit() {
     setBusy(true);
@@ -1169,13 +1190,30 @@ function CreateProjectSheet({
           </div>
           <Field
             label={t("common.location")}
-            hint={pos ? `${pos[0].toFixed(5)}, ${pos[1].toFixed(5)}` : t("official.pickLocation")}
+            hint={
+              notFound
+                ? t("official.locationNotFound")
+                : pos
+                  ? `${pos[0].toFixed(5)}, ${pos[1].toFixed(5)}`
+                  : t("official.pickLocation")
+            }
           >
-            <Input
-              value={f.location}
-              onChange={(e) => set("location")(e.target.value)}
-              placeholder="6th Block, Koramangala"
-            />
+            <div className="flex gap-2">
+              <Input
+                value={f.location}
+                onChange={(e) => set("location")(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    void findOnMap();
+                  }
+                }}
+                placeholder="6th Block, Koramangala"
+              />
+              <Button type="button" variant="secondary" onClick={findOnMap} disabled={!f.location.trim() || finding}>
+                <MapPin /> {t("official.findOnMap")}
+              </Button>
+            </div>
           </Field>
           <LocationPicker value={pos} onChange={setPos} className="h-64" />
         </div>

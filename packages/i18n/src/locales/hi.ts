@@ -417,6 +417,8 @@ export const hi: Messages = {
     createTitle: "परियोजना बनाएँ",
     createBody: "विवरण IPFS पर प्रकाशित होते हैं; ब्लॉकचेन उनका फ़िंगरप्रिंट रखती है। काम शुरू होने से पहले लेखा परीक्षकों का अनुमोदन ज़रूरी है।",
     pickLocation: "साइट का स्थान चुनने के लिए नक्शे पर टैप करें",
+    findOnMap: "नक्शे पर खोजें",
+    locationNotFound: "जगह नहीं मिली — नक्शे पर टैप करें",
     budgetRupees: "बजट (₹)",
     budgetCoins: "बजट ({{symbol}})",
     threshold: "आवश्यक लेखा परीक्षक अनुमोदन",

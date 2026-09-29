@@ -415,6 +415,8 @@ export const en = {
     createTitle: "Create a project",
     createBody: "Details are published to IPFS; the blockchain stores their fingerprint. Auditors must approve before work starts.",
     pickLocation: "Tap the map to set the site location",
+    findOnMap: "Find on map",
+    locationNotFound: "Place not found — tap the map instead",
     budgetRupees: "Budget (₹)",
     budgetCoins: "Budget ({{symbol}})",
     threshold: "Auditor approvals needed",
