@@ -36,7 +36,7 @@
       "root": "apps/api/",
       "framework": "express",
       "entrypoint": "src/index.ts",
-      "buildCommand": "node ./build.mjs && node dist/migrate.mjs --seed",
+      "buildCommand": "node ./build.mjs && if [ \"$VERCEL_ENV\" = production ]; then node dist/migrate.mjs --seed; fi",
       "functions": { "src/index.ts": { "maxDuration": 60 } }
     }
   },
