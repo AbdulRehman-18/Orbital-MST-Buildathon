@@ -11,7 +11,7 @@ ENV VITE_NS_CHAIN=$VITE_NS_CHAIN \
     VITE_NS_IPFS_GATEWAY=$VITE_NS_IPFS_GATEWAY
 RUN pnpm install --frozen-lockfile && pnpm --filter @namma-seva/web build
 
-FROM nginx:1.27-alpine
+FROM nginx:1.31-alpine
 # Static assets only; the CSP/host settings below are applied at container start (envsubst).
 COPY infra/docker/nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY infra/docker/ns-proxy.conf /etc/nginx/ns-proxy.conf
