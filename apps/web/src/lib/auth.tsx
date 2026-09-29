@@ -1,4 +1,5 @@
 import {
+  ApiError,
   createSiweNonce,
   getDemoConfig,
   logout as apiLogout,
@@ -91,7 +92,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then((t) => !cancelled && apply(t))
       .catch(() => !cancelled && clear());
     timer.current = setInterval(() => {
-      refreshOnce().then(apply).catch(clear);
+      // Only a rejected session signs out; a network blip retries on the next tick.
+      refreshOnce()
+        .then(apply)
+        .catch((e) => e instanceof ApiError && e.status === 401 && clear());
     }, REFRESH_EVERY_MS);
     return () => {
       cancelled = true;
