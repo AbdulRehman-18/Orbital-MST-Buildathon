@@ -663,7 +663,7 @@ function AddMilestoneButton({ p, available }: { p: Project; available: bigint })
         return !!hash;
       }}
     >
-      <p className="text-muted-foreground text-sm">
+      <p className={value !== null && value > available ? "text-destructive text-sm font-medium" : "text-muted-foreground text-sm"}>
         {t("official.available", { amount: formatAmount(available > 0n ? available : 0n, mode) })}
       </p>
       <Field label={t("common.title")}>
@@ -678,16 +678,14 @@ function AddMilestoneButton({ p, available }: { p: Project; available: bigint })
       </Field>
       <Field
         label={
-          mode === "ESCROW"
-            ? t("official.budgetCoins", { symbol: network.nativeCurrency.symbol })
-            : `${t("common.amount")} (₹)`
+          `${t("common.amount")} (${mode === "ESCROW" ? network.nativeCurrency.symbol : "₹"})`
         }
       >
         <Input
           inputMode="decimal"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
-          placeholder="5,00,000"
+          placeholder={mode === "ESCROW" ? "0.5" : "5,00,000"}
         />
       </Field>
     </ActionDialog>
