@@ -342,6 +342,7 @@ export const ListProjectsQueryParams = zod.object({
   "status": zod.enum(['PENDING_APPROVAL', 'ACTIVE', 'PAUSED', 'COMPLETED', 'CANCELLED']).optional(),
   "official": zod.coerce.string().optional(),
   "contractor": zod.coerce.string().optional(),
+  "archived": zod.enum(['exclude', 'only']).optional().describe('exclude (default) hides projects an official removed; only lists just those'),
   "limit": zod.coerce.number().int().min(1).max(listProjectsQueryLimitMax).default(listProjectsQueryLimitDefault),
   "offset": zod.coerce.number().int().min(listProjectsQueryOffsetMin).default(listProjectsQueryOffsetDefault)
 })
@@ -450,6 +451,26 @@ export const PrepareProjectResponse = zod.object({
   "approvalThreshold": zod.int()
 }).describe('The `NewProject` struct, ready for `createProject(p)`.')
 })
+
+
+/**
+ * @summary Owning OFFICIAL (or ADMIN) — remove a rejected/cancelled project from public view (the chain record stays)
+ */
+export const ArchiveProjectParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const ArchiveProjectResponse = zod.void()
+
+
+/**
+ * @summary Owning OFFICIAL (or ADMIN) — restore an archived project
+ */
+export const UnarchiveProjectParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const UnarchiveProjectResponse = zod.void()
 
 
 export const GetProjectStatsQueryParams = zod.object({

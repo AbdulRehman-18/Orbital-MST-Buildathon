@@ -1,4 +1,4 @@
-import { pendingTxs } from "@namma-seva/db";
+import { eq, pendingTxs, projects } from "@namma-seva/db";
 import { id, keccak256, Wallet } from "ethers";
 import pino from "pino";
 import request from "supertest";
@@ -378,6 +378,39 @@ describe("account display names", () => {
 
     await request(t.app).delete(`/api/profiles/${addr}`).set("authorization", `Bearer ${admin}`).expect(204);
     expect((await request(t.app).get("/api/profiles").expect(200)).body).toEqual([]);
+  });
+});
+
+describe("removing rejected projects", () => {
+  it("hides a CANCELLED project from public lists; only its official or an admin can, and it is reversible", async () => {
+    const c = t.chain!;
+    const prep = await tokenFor({ role: "GOVT_OFFICIAL", roles: ["GOVT_OFFICIAL"], walletAddress: OFFICIAL, wards: [42] });
+    const a = (await request(t.app).post("/api/projects").set("authorization", `Bearer ${prep}`).send(newProject).expect(201)).body.args;
+    c.mine([
+      c.ev("ProjectRegistry", "ProjectCreated", 1, OFFICIAL, a.wardId, a.metaHash, a.metaCID, a.category, a.departmentId,
+        a.latE6, a.lngE6, BigInt(a.budget), a.startDate, a.endDate, ZERO, a.approvalThreshold),
+    ]);
+    c.mineEmpty(6);
+    await index();
+
+    const official = await tokenFor({ role: "GOVT_OFFICIAL", roles: ["GOVT_OFFICIAL"], walletAddress: OFFICIAL });
+    const other = await tokenFor({ role: "GOVT_OFFICIAL", roles: ["GOVT_OFFICIAL"], walletAddress: CONTRACTOR });
+    await request(t.app).post("/api/projects/1/archive").expect(401);
+    // Not rejected yet → cannot be removed.
+    await request(t.app).post("/api/projects/1/archive").set("authorization", `Bearer ${official}`).expect(409);
+
+    await t.ctx.db.update(projects).set({ status: "CANCELLED" }).where(eq(projects.id, 1));
+    await request(t.app).post("/api/projects/1/archive").set("authorization", `Bearer ${other}`).expect(403);
+    await request(t.app).post("/api/projects/1/archive").set("authorization", `Bearer ${official}`).expect(204);
+
+    expect((await request(t.app).get("/api/projects").expect(200)).body.total).toBe(0);
+    expect((await request(t.app).get("/api/projects/stats").expect(200)).body.totalProjects).toBe(0);
+    expect((await request(t.app).get("/api/projects?archived=only").expect(200)).body.total).toBe(1);
+    // The record itself is still there and verifiable by id.
+    await request(t.app).get("/api/projects/1").expect(200);
+
+    await request(t.app).delete("/api/projects/1/archive").set("authorization", `Bearer ${official}`).expect(204);
+    expect((await request(t.app).get("/api/projects").expect(200)).body.total).toBe(1);
   });
 });
 

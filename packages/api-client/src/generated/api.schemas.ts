@@ -1078,6 +1078,10 @@ status?: ProjectStatus;
 official?: string;
 contractor?: string;
 /**
+ * exclude (default) hides projects an official removed; only lists just those
+ */
+archived?: ListProjectsArchived;
+/**
  * @minimum 1
  * @maximum 200
  */
@@ -1087,6 +1091,14 @@ limit?: LimitParameter;
  */
 offset?: OffsetParameter;
 };
+
+export type ListProjectsArchived = typeof ListProjectsArchived[keyof typeof ListProjectsArchived];
+
+
+export const ListProjectsArchived = {
+  exclude: 'exclude',
+  only: 'only',
+} as const;
 
 export type GetProjectStatsParams = {
 wardId?: number;

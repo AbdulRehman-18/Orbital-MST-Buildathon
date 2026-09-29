@@ -173,3 +173,15 @@ export const accountProfiles = pgTable("account_profiles", {
   updatedBy: address("updated_by"),
   updatedAt: tsz("updated_at").notNull().defaultNow(),
 });
+
+/**
+ * Projects an official has removed from public view after the auditors rejected/cancelled them.
+ * The chain is append-only, so nothing is deleted there: the record and its proofs stay verifiable
+ * by id, ledger and hash. This only hides the project from lists, maps and totals. It lives here
+ * (not on `projects`) because projection tables are rebuilt from the chain.
+ */
+export const archivedProjects = pgTable("archived_projects", {
+  projectId: blockNo("project_id").primaryKey(),
+  archivedBy: address("archived_by").notNull(),
+  archivedAt: tsz("archived_at").notNull().defaultNow(),
+});

@@ -1,6 +1,8 @@
 import {
   listDepartments,
+  archiveProject,
   listMilestones,
+  unarchiveProject,
   listProjects,
   listRoleHolders,
   listTenders,
@@ -22,10 +24,14 @@ import {
   Lock,
   MapPin,
   Plus,
+  Trash2,
+  Undo2,
   UserPlus,
   Wallet,
 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { keccak256, toBytes, zeroHash } from "viem";
 import { Link } from "wouter";
@@ -68,7 +74,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
-import { useApi, useMode } from "@/lib/api";
+import { errorMessage, useApi, useMode } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { ALL_WARDS, network } from "@/lib/chain";
 import { formatAmount, percent, toChainAmount } from "@/lib/format";
@@ -101,6 +107,10 @@ function Official() {
   const projects = useApi(["/api/projects", { official: me }], () =>
     listProjects({ official: me, limit: 200 }),
   );
+  const removed = useApi(["/api/projects", { official: me, archived: "only" }], () =>
+    listProjects({ official: me, archived: "only", limit: 200 }),
+  );
+  const [showRemoved, setShowRemoved] = useState(false);
   const milestones = useApi(["/api/milestones", { official: me }], () =>
     listMilestones({ official: me }),
   );
@@ -285,7 +295,27 @@ function Official() {
       </TabsContent>
 
       <TabsContent value="projects">
-        {projects.isLoading ? (
+        {(removed.data?.items.length ?? 0) > 0 && (
+          <div className="mb-4 flex justify-end">
+            <Button variant="ghost" size="sm" onClick={() => setShowRemoved((v) => !v)}>
+              {showRemoved ? <Undo2 /> : <Trash2 />}{" "}
+              {showRemoved ? t("official.hideRemoved") : `${t("official.showRemoved")} (${removed.data!.items.length})`}
+            </Button>
+          </div>
+        )}
+        {showRemoved ? (
+          <div className="flex flex-col gap-2">
+            {(removed.data?.items ?? []).map((p) => (
+              <Card key={p.id}>
+                <CardContent className="flex items-center gap-3 py-3">
+                  <span className="min-w-0 flex-1 truncate text-sm font-medium">{p.title ?? `#${p.id}`}</span>
+                  <StatusBadge status={p.status} />
+                  <ArchiveToggle p={p} restore />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : projects.isLoading ? (
           <LoadingRows rows={3} />
         ) : items.length === 0 ? (
           <EmptyState icon={Building2} title={t("official.noProjects")} action={newProject} />
@@ -524,9 +554,43 @@ function OfficialProjectCard({
             </Button>
           )}
           {active && milestones.length > 0 && !unsettled && <CloseButton p={p} />}
+          {p.status === "CANCELLED" && <ArchiveToggle p={p} />}
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+/** "Delete" a rejected project: hides it from public view (the chain record itself cannot be erased). */
+function ArchiveToggle({ p, restore }: { p: Project; restore?: boolean }) {
+  const { t } = useTranslation();
+  const qc = useQueryClient();
+  const run = async () => {
+    await (restore ? unarchiveProject(p.id) : archiveProject(p.id));
+    await qc.invalidateQueries();
+    toast.success(restore ? t("official.projectRestored") : t("official.projectRemoved"));
+    return true;
+  };
+  if (restore) {
+    return (
+      <Button size="sm" variant="outline" onClick={() => void run().catch((e) => toast.error(errorMessage(e)))}>
+        <Undo2 /> {t("official.restore")}
+      </Button>
+    );
+  }
+  return (
+    <ActionDialog
+      destructive
+      trigger={(open) => (
+        <Button size="sm" variant="outline" onClick={open}>
+          <Trash2 /> {t("official.removeProject")}
+        </Button>
+      )}
+      title={t("official.removeProjectTitle")}
+      description={t("official.removeProjectBody")}
+      submitLabel={t("official.removeProject")}
+      onSubmit={run}
+    />
   );
 }
 
@@ -618,20 +682,30 @@ function FundButton({ p }: { p: Project }) {
   );
 }
 
+type MilestoneRow = { title: string; description: string; amount: string };
+const emptyRow = (): MilestoneRow => ({ title: "", description: "", amount: "" });
+
+/** One or many milestones in a single dialog (one wallet transaction each; the contract creates them one at a time). */
 function AddMilestoneButton({ p, available }: { p: Project; available: bigint }) {
   const { t } = useTranslation();
   const mode = useMode();
   const { send } = useChainTx();
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [amount, setAmount] = useState("");
-  let value: bigint | null = null;
-  try {
-    value = amount ? toChainAmount(amount, mode) : null;
-  } catch {
-    value = null;
-  }
-  const valid = title.trim().length >= 3 && value !== null && value > 0n && value <= available;
+  const [rows, setRows] = useState<MilestoneRow[]>([emptyRow()]);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const patch = (i: number, v: Partial<MilestoneRow>) => setRows((r) => r.map((x, j) => (j === i ? { ...x, ...v } : x)));
+
+  const parsed = rows.map((r) => {
+    let value: bigint | null = null;
+    try {
+      value = r.amount ? toChainAmount(r.amount, mode) : null;
+    } catch {
+      value = null;
+    }
+    return { value, ok: r.title.trim().length >= 3 && value !== null && value > 0n };
+  });
+  const total = parsed.reduce((n, r) => n + (r.value ?? 0n), 0n);
+  const over = total > available;
+  const valid = parsed.every((r) => r.ok) && !over;
 
   return (
     <ActionDialog
@@ -642,52 +716,81 @@ function AddMilestoneButton({ p, available }: { p: Project; available: bigint })
       )}
       title={t("official.milestoneTitle")}
       description={t("official.milestoneBody")}
-      submitLabel={t("official.create")}
+      submitLabel={
+        progress
+          ? t("official.creatingN", progress)
+          : rows.length > 1
+            ? t("official.createN", { count: rows.length })
+            : t("official.create")
+      }
       disabled={!valid}
       onSubmit={async () => {
-        const meta = await pinMetadata({
-          kind: "milestone",
-          title: title.trim(),
-          description: description.trim() || undefined,
-          projectId: p.id,
-        });
-        const hash = await send({
-          label: t("official.addMilestone"),
-          contract: "MilestoneEscrow",
-          functionName: "createMilestone",
-          args: [BigInt(p.id), meta.hash, meta.cid, value!],
-          kind: "createMilestone",
-          entityId: p.id,
-        });
-        if (hash) (setTitle(""), setDescription(""), setAmount(""));
-        return !!hash;
+        // Sequential on purpose: each is its own wallet confirmation. If one fails, the rows that
+        // were already created are dropped and the rest stay in the form so nothing typed is lost.
+        let remaining = rows;
+        for (let i = 0; i < rows.length; i++) {
+          setProgress({ done: i + 1, total: rows.length });
+          const r = rows[i];
+          const meta = await pinMetadata({
+            kind: "milestone",
+            title: r.title.trim(),
+            description: r.description.trim() || undefined,
+            projectId: p.id,
+          });
+          const hash = await send({
+            label: rows.length > 1 ? `${t("official.addMilestone")} ${i + 1}/${rows.length}` : t("official.addMilestone"),
+            contract: "MilestoneEscrow",
+            functionName: "createMilestone",
+            args: [BigInt(p.id), meta.hash, meta.cid, parsed[i].value!],
+            kind: "createMilestone",
+            entityId: p.id,
+          });
+          if (!hash) {
+            setRows(remaining);
+            setProgress(null);
+            return false;
+          }
+          remaining = remaining.slice(1);
+        }
+        setProgress(null);
+        setRows([emptyRow()]);
+        return true;
       }}
     >
-      <p className={value !== null && value > available ? "text-destructive text-sm font-medium" : "text-muted-foreground text-sm"}>
-        {t("official.available", { amount: formatAmount(available > 0n ? available : 0n, mode) })}
+      <p className={over ? "text-destructive text-sm font-medium" : "text-muted-foreground text-sm"}>
+        {rows.length > 1
+          ? t("official.milestonesTotal", { total: formatAmount(total, mode), available: formatAmount(available > 0n ? available : 0n, mode) })
+          : t("official.available", { amount: formatAmount(available > 0n ? available : 0n, mode) })}
       </p>
-      <Field label={t("common.title")}>
-        <Input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Bituminous concrete wearing course"
-        />
-      </Field>
-      <Field label={`${t("common.description")} (${t("common.optional")})`}>
-        <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
-      </Field>
-      <Field
-        label={
-          `${t("common.amount")} (${mode === "ESCROW" ? network.nativeCurrency.symbol : "₹"})`
-        }
-      >
-        <Input
-          inputMode="decimal"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          placeholder={mode === "ESCROW" ? "0.5" : "5,00,000"}
-        />
-      </Field>
+      {rows.map((r, i) => (
+        <div key={i} className="flex flex-col gap-3 rounded-lg border p-3">
+          {rows.length > 1 && (
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">{t("official.milestoneN", { n: i + 1 })}</span>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setRows((x) => x.filter((_, j) => j !== i))}>
+                <Trash2 /> {t("official.removeRow")}
+              </Button>
+            </div>
+          )}
+          <Field label={t("common.title")}>
+            <Input value={r.title} onChange={(e) => patch(i, { title: e.target.value })} placeholder="Bituminous concrete wearing course" />
+          </Field>
+          <Field label={`${t("common.description")} (${t("common.optional")})`}>
+            <Textarea value={r.description} onChange={(e) => patch(i, { description: e.target.value })} rows={2} />
+          </Field>
+          <Field label={`${t("common.amount")} (${mode === "ESCROW" ? network.nativeCurrency.symbol : "₹"})`}>
+            <Input
+              inputMode="decimal"
+              value={r.amount}
+              onChange={(e) => patch(i, { amount: e.target.value })}
+              placeholder={mode === "ESCROW" ? "0.5" : "5,00,000"}
+            />
+          </Field>
+        </div>
+      ))}
+      <Button type="button" variant="outline" size="sm" className="w-fit" onClick={() => setRows((x) => [...x, emptyRow()])}>
+        <Plus /> {t("official.addAnother")}
+      </Button>
     </ActionDialog>
   );
 }

@@ -13,27 +13,11 @@
  *
  * OpenAPI spec version: 0.3.0
  */
-import type { LimitParameter } from './limitParameter';
-import type { ListProjectsArchived } from './listProjectsArchived';
-import type { OffsetParameter } from './offsetParameter';
-import type { ProjectStatus } from './projectStatus';
 
-export type ListProjectsParams = {
-wardId?: number;
-status?: ProjectStatus;
-official?: string;
-contractor?: string;
-/**
- * exclude (default) hides projects an official removed; only lists just those
- */
-archived?: ListProjectsArchived;
-/**
- * @minimum 1
- * @maximum 200
- */
-limit?: LimitParameter;
-/**
- * @minimum 0
- */
-offset?: OffsetParameter;
-};
+export type ListProjectsArchived = typeof ListProjectsArchived[keyof typeof ListProjectsArchived];
+
+
+export const ListProjectsArchived = {
+  exclude: 'exclude',
+  only: 'only',
+} as const;

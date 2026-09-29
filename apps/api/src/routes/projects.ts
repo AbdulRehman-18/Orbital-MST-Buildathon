@@ -1,15 +1,19 @@
 import {
   and,
   anomalies,
+  archivedProjects,
+  auditLog,
   asc,
   chainEvents,
   count,
   desc,
   eq,
   grievances,
+  inArray,
   isNull,
   milestones,
   ne,
+  notInArray,
   projectApprovals,
   projects,
   sql,
@@ -25,18 +29,20 @@ import {
   VerifyProjectParams,
 } from "@namma-seva/api-zod";
 import { txUrl, addressUrl } from "@namma-seva/chain";
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request } from "express";
 import { ZeroAddress } from "ethers";
 import { anomalyView, canSeeAnomalyDetails } from "../anomaly/view";
 import { requireAuth } from "../auth/middleware";
 import { PROJECT_CATEGORY } from "../chain/contracts";
 import type { AppContext } from "../context";
 import { pinJson, pinnedHash } from "../ipfs/metadata";
-import { badRequest, handler, notFound, parse, unavailable } from "../lib/http";
+import { badRequest, conflict, forbidden, handler, notFound, parse, unavailable } from "../lib/http";
 
 export default function projectRoutes(ctx: AppContext): IRouter {
   const router: IRouter = Router();
   const { db, config } = ctx;
+
+  const archivedIds = db.select({ id: archivedProjects.projectId }).from(archivedProjects);
 
   router.get(
     "/projects",
@@ -47,7 +53,8 @@ export default function projectRoutes(ctx: AppContext): IRouter {
       if (q.status) where.push(eq(projects.status, q.status));
       if (q.official) where.push(eq(projects.officialAddr, q.official.toLowerCase()));
       if (q.contractor) where.push(eq(projects.contractorAddr, q.contractor.toLowerCase()));
-      const filter = where.length ? and(...where) : undefined;
+      where.push(q.archived === "only" ? inArray(projects.id, archivedIds) : notInArray(projects.id, archivedIds));
+      const filter = and(...where);
       const [items, [{ total }]] = await Promise.all([
         db
           .select()
@@ -66,7 +73,10 @@ export default function projectRoutes(ctx: AppContext): IRouter {
     "/projects/stats",
     handler(async (req, res) => {
       const q = parse(GetProjectStatsQueryParams, req.query);
-      const ward = q.wardId !== undefined ? eq(projects.wardId, q.wardId) : undefined;
+      const ward = and(
+        notInArray(projects.id, archivedIds),
+        q.wardId !== undefined ? eq(projects.wardId, q.wardId) : undefined,
+      );
       const rows = await db
         .select({
           status: projects.status,
@@ -133,6 +143,59 @@ export default function projectRoutes(ctx: AppContext): IRouter {
           : flags.filter((f) => !f.resolvedAt).map((f) => anomalyView(f, false)),
         pendingEvents: pending,
       });
+    }),
+  );
+
+  /**
+   * "Delete" a rejected project. The chain is append-only, so this only hides it from public lists,
+   * maps and totals; the record, its events and its proofs stay verifiable by id.
+   */
+  const canArchive = async (req: Request) => {
+    const { id } = parse(GetProjectParams, req.params);
+    const [project] = await db.select().from(projects).where(eq(projects.id, id));
+    if (!project) throw notFound("Project not indexed yet");
+    const isAdmin = req.user!.roles.includes("ADMIN");
+    if (!isAdmin && project.officialAddr !== req.user!.walletAddress?.toLowerCase()) {
+      throw forbidden("Only the official who created this project can remove it");
+    }
+    return project;
+  };
+
+  router.post(
+    "/projects/:id/archive",
+    requireAuth("GOVT_OFFICIAL", "ADMIN"),
+    handler(async (req, res) => {
+      const project = await canArchive(req);
+      if (project.status !== "CANCELLED") throw conflict("Only rejected or cancelled projects can be removed");
+      await db
+        .insert(archivedProjects)
+        .values({ projectId: project.id, archivedBy: req.user!.walletAddress ?? req.user!.id })
+        .onConflictDoNothing();
+      await db.insert(auditLog).values({
+        actor: req.user!.walletAddress ?? req.user!.id,
+        action: "project.archive",
+        entity: "project",
+        entityId: String(project.id),
+        requestId: String(req.id ?? ""),
+      });
+      res.status(204).end();
+    }),
+  );
+
+  router.delete(
+    "/projects/:id/archive",
+    requireAuth("GOVT_OFFICIAL", "ADMIN"),
+    handler(async (req, res) => {
+      const project = await canArchive(req);
+      await db.delete(archivedProjects).where(eq(archivedProjects.projectId, project.id));
+      await db.insert(auditLog).values({
+        actor: req.user!.walletAddress ?? req.user!.id,
+        action: "project.unarchive",
+        entity: "project",
+        entityId: String(project.id),
+        requestId: String(req.id ?? ""),
+      });
+      res.status(204).end();
     }),
   );
 

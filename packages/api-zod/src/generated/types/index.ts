@@ -63,6 +63,7 @@ export * from './listGrievancesStatus';
 export * from './listLedgerEventsParams';
 export * from './listMilestonesParams';
 export * from './listPendingMilestonesParams';
+export * from './listProjectsArchived';
 export * from './listProjectsParams';
 export * from './listTendersParams';
 export * from './listTendersStatus';

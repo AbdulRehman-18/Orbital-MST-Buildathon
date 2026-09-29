@@ -1456,6 +1456,154 @@ export const usePrepareProject = <TError = ErrorType<Error>,
       return useMutation(getPrepareProjectMutationOptions(options));
     }
 
+export const getArchiveProjectUrl = (id: number,) => {
+
+
+
+
+  return `/api/projects/${id}/archive`
+}
+
+/**
+ * @summary Owning OFFICIAL (or ADMIN) — remove a rejected/cancelled project from public view (the chain record stays)
+ */
+export const archiveProject = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getArchiveProjectUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getArchiveProjectMutationKey = () => ['archiveProject'] as const;
+
+export const getArchiveProjectMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof archiveProject>>, TError,ArchiveProjectMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof archiveProject>>, TError,ArchiveProjectMutationVariables, TContext> => {
+
+const mutationKey = getArchiveProjectMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof archiveProject>>, ArchiveProjectMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  archiveProject(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ArchiveProjectMutationResult = NonNullable<Awaited<ReturnType<typeof archiveProject>>>
+
+    export type ArchiveProjectMutationError = ErrorType<Error>
+    export type ArchiveProjectMutationVariables = {id: number}
+
+    /**
+ * @summary Owning OFFICIAL (or ADMIN) — remove a rejected/cancelled project from public view (the chain record stays)
+ */
+export const useArchiveProject = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof archiveProject>>, TError,ArchiveProjectMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof archiveProject>>,
+        TError,
+        ArchiveProjectMutationVariables,
+        TContext
+      > => {
+      return useMutation(getArchiveProjectMutationOptions(options));
+    }
+
+export const getUnarchiveProjectUrl = (id: number,) => {
+
+
+
+
+  return `/api/projects/${id}/archive`
+}
+
+/**
+ * @summary Owning OFFICIAL (or ADMIN) — restore an archived project
+ */
+export const unarchiveProject = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getUnarchiveProjectUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getUnarchiveProjectMutationKey = () => ['unarchiveProject'] as const;
+
+export const getUnarchiveProjectMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unarchiveProject>>, TError,UnarchiveProjectMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unarchiveProject>>, TError,UnarchiveProjectMutationVariables, TContext> => {
+
+const mutationKey = getUnarchiveProjectMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unarchiveProject>>, UnarchiveProjectMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  unarchiveProject(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnarchiveProjectMutationResult = NonNullable<Awaited<ReturnType<typeof unarchiveProject>>>
+
+    export type UnarchiveProjectMutationError = ErrorType<unknown>
+    export type UnarchiveProjectMutationVariables = {id: number}
+
+    /**
+ * @summary Owning OFFICIAL (or ADMIN) — restore an archived project
+ */
+export const useUnarchiveProject = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unarchiveProject>>, TError,UnarchiveProjectMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof unarchiveProject>>,
+        TError,
+        UnarchiveProjectMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUnarchiveProjectMutationOptions(options));
+    }
+
 export const getGetProjectStatsUrl = (params?: GetProjectStatsParams,) => {
   const normalizedParams = new URLSearchParams();
 

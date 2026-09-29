@@ -1078,6 +1078,7 @@ paths:
         - { name: status, in: query, schema: { $ref: "#/components/schemas/ProjectStatus" } }
         - { name: official, in: query, schema: { type: string } }
         - { name: contractor, in: query, schema: { type: string } }
+        - { name: archived, in: query, description: "exclude (default) hides projects an official removed; only lists just those", schema: { type: string, enum: [exclude, only] } }
         - $ref: "#/components/parameters/Limit"
         - $ref: "#/components/parameters/Offset"
       responses:
@@ -1107,6 +1108,32 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
+  /projects/{id}/archive:
+    post:
+      operationId: archiveProject
+      tags: [projects]
+      security: [{ bearer: [] }]
+      summary: Owning OFFICIAL (or ADMIN) — remove a rejected/cancelled project from public view (the chain record stays)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "204":
+          description: Archived
+        "409":
+          description: Only CANCELLED projects can be archived
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    delete:
+      operationId: unarchiveProject
+      tags: [projects]
+      security: [{ bearer: [] }]
+      summary: Owning OFFICIAL (or ADMIN) — restore an archived project
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        "204":
+          description: Restored
   /projects/stats:
     get:
       operationId: getProjectStats
