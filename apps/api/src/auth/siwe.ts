@@ -14,7 +14,26 @@ export async function issueNonce(db: Db): Promise<{ nonce: string; expiresAt: Da
   return { nonce, expiresAt };
 }
 
-export type SiweCheck = { domain: string; chainId: number; provider?: Provider };
+/** `domains`: allowed SIWE domains (host[:port]); "*.example.com" matches any subdomain (dev only). */
+export type SiweCheck = { domains: string[]; chainId: number; provider?: Provider };
+
+export function siweDomainAllowed(domain: string, allowed: string[]): boolean {
+  const d = domain.toLowerCase();
+  return allowed.some((p) => {
+    const pat = p.toLowerCase();
+    return pat.startsWith("*.") ? d.endsWith(pat.slice(1)) && d.length > pat.length - 1 : d === pat;
+  });
+}
+
+/**
+ * Domain the wallet should sign for: the host the user actually opened (forwarded by the web
+ * server / tunnel) when it is on the allowlist, else the first configured domain.
+ */
+export function pickSiweDomain(host: string | undefined, allowed: string[]): string {
+  const h = host?.split(",")[0].trim().toLowerCase();
+  if (h && siweDomainAllowed(h, allowed)) return h;
+  return allowed.find((p) => !p.startsWith("*.")) ?? allowed[0];
+}
 
 export class SiweError extends Error {}
 
@@ -29,7 +48,7 @@ export async function verifySiwe(db: Db, message: string, signature: string, che
   } catch {
     throw new SiweError("Malformed SIWE message");
   }
-  if (msg.domain !== check.domain) throw new SiweError(`Domain must be ${check.domain}`);
+  if (!siweDomainAllowed(msg.domain, check.domains)) throw new SiweError(`Domain ${msg.domain} is not allowed`);
   if (msg.chainId !== check.chainId) throw new SiweError(`Chain id must be ${check.chainId}`);
 
   // Burn the nonce first so a signature can never be replayed, even concurrently.
@@ -41,7 +60,7 @@ export async function verifySiwe(db: Db, message: string, signature: string, che
   if (burned.length === 0) throw new SiweError("Unknown, used or expired nonce");
 
   const result = await msg
-    .verify({ signature, domain: check.domain, nonce: msg.nonce, time: new Date().toISOString() }, {
+    .verify({ signature, domain: msg.domain, nonce: msg.nonce, time: new Date().toISOString() }, {
       provider: check.provider as never,
       suppressExceptions: true,
     })

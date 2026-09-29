@@ -63,8 +63,11 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: Number(env.WEB_PORT ?? 5173),
+      // Remote demo access goes through an https tunnel (`pnpm tunnel`): wallets refuse plain-http LAN IPs.
+      allowedHosts: (env.WEB_ALLOWED_HOSTS ?? "localhost,.trycloudflare.com").split(",").map((h) => h.trim()).filter(Boolean),
       // ws: Socket.IO live updates are served under /api/socket.io.
-      proxy: { "/api": { target: apiTarget, changeOrigin: true, ws: true } },
+      // xfwd: the API sees the host the user opened (X-Forwarded-Host) and signs SIWE for it.
+      proxy: { "/api": { target: apiTarget, changeOrigin: true, ws: true, xfwd: true } },
     },
     build: {
       outDir: "dist",
@@ -76,7 +79,8 @@ export default defineConfig(({ mode }) => {
             if (!id.includes("node_modules")) return undefined;
             if (/[\/](viem|wagmi|@wagmi|ox|abitype|@noble|@scure)[\/]/.test(id)) return "web3";
             if (/[\/](leaflet|react-leaflet|@react-leaflet)[\/]/.test(id)) return "map";
-            if (/[\/](react|react-dom|scheduler|@tanstack|i18next|react-i18next|wouter)[\/]/.test(id)) return "react";
+            // React stays in the shared vendor chunk: a separate "react" chunk made react ⇄ vendor import
+            // each other (CJS interop) and the production bundle crashed on load ("reading 'exports'").
             return "vendor";
           },
         },

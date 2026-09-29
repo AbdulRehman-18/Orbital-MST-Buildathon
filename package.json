@@ -23,7 +23,10 @@
     "db:seed": "pnpm --filter @namma-seva/db seed",
     "test:api": "pnpm --filter @namma-seva/api test",
     "chain:node": "pnpm --filter @namma-seva/contracts node",
-    "demo": "node scripts/demo.mjs"
+    "demo": "node scripts/demo.mjs",
+    "tunnel": "cloudflared tunnel --url http://localhost:5173",
+    "share:web": "pnpm --filter @namma-seva/web build && pnpm --filter @namma-seva/web exec vite preview --port 4173 --strictPort",
+    "tunnel:share": "cloudflared tunnel --url http://localhost:4173"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.8",

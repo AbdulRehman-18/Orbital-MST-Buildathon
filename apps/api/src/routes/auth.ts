@@ -9,7 +9,7 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { requireAuth } from "../auth/middleware";
 import { sendOtp, verifyOtp, OTP_TTL_SECONDS } from "../auth/otp";
 import { primaryRole, sessionUserById, upsertCitizenUser, upsertWalletUser } from "../auth/roles";
-import { issueNonce, SiweError, verifySiwe } from "../auth/siwe";
+import { issueNonce, pickSiweDomain, SiweError, verifySiwe } from "../auth/siwe";
 import { ACCESS_TTL_SECONDS, SESSION_COOKIE, type Role, type SessionUser } from "../auth/tokens";
 import type { AppContext } from "../context";
 import { ipHash, normalizePhone, phoneHash } from "../lib/hash";
@@ -37,9 +37,11 @@ export default function authRoutes(ctx: AppContext): IRouter {
   // ─── SIWE (officials, auditors, contractors, admins) ───────────────────
   router.post(
     "/auth/siwe/nonce",
-    handler(async (_req, res) => {
+    handler(async (req, res) => {
       const { nonce, expiresAt } = await issueNonce(db);
-      res.json({ nonce, domain: config.auth.siweDomain, chainId: config.network.id, expiresAt });
+      // Sign for the address the user opened (localhost, LAN or an https tunnel) if it's allowed.
+      const host = (req.headers["x-forwarded-host"] as string | undefined) ?? req.headers.host;
+      res.json({ nonce, domain: pickSiweDomain(host, config.auth.siweDomains), chainId: config.network.id, expiresAt });
     }),
   );
 
@@ -50,7 +52,7 @@ export default function authRoutes(ctx: AppContext): IRouter {
       let address: string;
       try {
         address = await verifySiwe(db, body.message, body.signature, {
-          domain: config.auth.siweDomain,
+          domains: config.auth.siweDomains,
           chainId: config.network.id,
           provider: ctx.chain?.provider,
         });

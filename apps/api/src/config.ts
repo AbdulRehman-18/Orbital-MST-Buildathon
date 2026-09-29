@@ -116,6 +116,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
   const network: Network = getNetwork(chainName);
   const rpcUrls = e.MST_RPC_URLS ? list(e.MST_RPC_URLS) : [...network.rpcUrls.default.http];
 
+  if (production && list(e.SIWE_DOMAIN).some((d) => d.includes("*"))) {
+    throw new Error("SIWE_DOMAIN wildcards are for development tunnels only; list exact domains in production.");
+  }
   if (production) {
     for (const key of ["DATABASE_URL", "REDIS_URL", "JWT_SECRET", "PHONE_HASH_PEPPER"] as const) {
       if (!e[key]) throw new Error(`${key} is required in production.`);
@@ -164,7 +167,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
     auth: {
       // Dev fallback keeps `pnpm dev` working without secrets; production requires JWT_SECRET above.
       jwtSecret: e.JWT_SECRET ?? "dev-only-insecure-jwt-secret-change-me!!",
-      siweDomain: e.SIWE_DOMAIN,
+      /** Comma-separated in SIWE_DOMAIN; "*.host" wildcards are refused in production. */
+      siweDomains: list(e.SIWE_DOMAIN),
       phonePepper: e.PHONE_HASH_PEPPER ?? "dev-only-pepper",
       otp: {
         provider: e.OTP_PROVIDER,
