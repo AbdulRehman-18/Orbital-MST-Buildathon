@@ -102,6 +102,15 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
   if (env.DEPLOYER_PRIVATE_KEY && production) {
     throw new Error("DEPLOYER_PRIVATE_KEY must not be present in the API environment.");
   }
+  // A copied local .env on Vercel points the API and build-time migrations at the build machine itself.
+  if (env.VERCEL) {
+    for (const key of ["DATABASE_URL", "REDIS_URL"] as const) {
+      const host = e[key] && URL.canParse(e[key]) ? new URL(e[key]).hostname : "";
+      if (["localhost", "127.0.0.1", "::1", "[::1]"].includes(host)) {
+        throw new Error(`${key} points at ${host}; on Vercel it must be a hosted service (e.g. Neon Postgres, Upstash Redis).`);
+      }
+    }
+  }
   if (e.RELAYER_KMS_KEY_ID && e.RELAYER_PRIVATE_KEY) {
     throw new Error("Set either RELAYER_KMS_KEY_ID or RELAYER_PRIVATE_KEY, not both.");
   }
