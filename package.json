@@ -32,6 +32,6 @@
     "@electric-sql/pglite": "0.5.8",
     "@electric-sql/pglite-socket": "0.2.11",
     "prettier": "^3.8.1",
-    "typescript": "~5.9.2"
+    "typescript": "~7.0.2"
   }
 }
