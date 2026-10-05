@@ -20,7 +20,7 @@
     "@tanstack/react-query": "catalog:",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
-    "i18next": "^25.5.2",
+    "i18next": "^26.4.2",
     "leaflet": "^1.9.4",
     "lucide-react": "catalog:",
     "qrcode.react": "^4.2.0",
