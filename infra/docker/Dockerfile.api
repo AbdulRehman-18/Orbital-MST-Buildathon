@@ -3,14 +3,14 @@
 #   API       node dist/index.mjs            (default CMD)
 #   indexer   node dist/indexer.mjs run      (exactly one replica per network; advisory-locked)
 #   migrate   node dist/migrate.mjs --seed   (release step, before API/indexer start)
-FROM node:22-alpine AS build
+FROM node:26-alpine AS build
 RUN corepack enable
 WORKDIR /app
 COPY . .
 RUN pnpm install --frozen-lockfile && pnpm --filter @namma-seva/api build \
  && pnpm --filter @namma-seva/api deploy --prod --legacy /out
 
-FROM node:22-alpine
+FROM node:26-alpine
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=build /out/node_modules ./node_modules
