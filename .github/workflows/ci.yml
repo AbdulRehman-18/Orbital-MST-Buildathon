@@ -46,7 +46,7 @@ jobs:
         run: pnpm --filter @namma-seva/contracts test
       - name: Coverage
         run: pnpm --filter @namma-seva/contracts coverage
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: contracts-coverage
@@ -120,7 +120,7 @@ jobs:
           done
           echo "demo stack did not become ready"; tail -n 80 demo.log; exit 1
       - run: pnpm --filter @namma-seva/web e2e
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: e2e-report

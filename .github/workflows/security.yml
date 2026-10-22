@@ -43,7 +43,7 @@ jobs:
       # H-1…H-4). Fail only on a High whose title is not in the triaged allow-list.
       - name: Fail on un-triaged High findings
         run: node packages/contracts/scripts/aderynGate.mjs packages/contracts/reports/aderyn.md
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with: { name: aderyn-report, path: packages/contracts/reports/aderyn.md }
 
